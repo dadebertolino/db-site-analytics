@@ -4,7 +4,7 @@ Tags: analytics, statistics, gdpr, privacy, tracking
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.0.2
+Stable tag: 3.0.3
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -80,6 +80,9 @@ Il file `uninstall.php` rimuove tutte le tabelle del database e tutte le opzioni
 
 == Changelog ==
 
+= 3.0.3 =
+* Fix: errore "Unsupported operand types" nella dashboard — aggiunti cast espliciti sui valori restituiti da wpdb prima di operazioni aritmetiche
+
 = 3.0.2 =
 * Fix: rimossi i return type union (int|false) incompatibili con PHP 7.4
 
@@ -109,6 +112,9 @@ Il file `uninstall.php` rimuove tutte le tabelle del database e tutte le opzioni
 * Prima release: tracking pageview server-side, dashboard, filtro bot, widget WP, GitHub auto-updater
 
 == Upgrade Notice ==
+
+= 3.0.3 =
+Fix critico: la dashboard non si apriva su alcuni server. Aggiornamento raccomandato.
 
 = 3.0.2 =
 Fix compatibilità PHP 7.4. Aggiornamento raccomandato per tutti.

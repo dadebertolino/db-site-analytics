@@ -3,7 +3,7 @@
  * Plugin Name:       DB Site Analytics
  * Plugin URI:        https://www.davidebertolino.it/progetti/db-site-analytics/
  * Description:       Tracciamento visite server-side senza cookie, senza JavaScript di tracking, senza servizi esterni. GDPR compliant by design.
- * Version:           3.0.0
+ * Version:           3.0.3
  * Author:            Davide Bertolino
  * Author URI:        https://www.davidebertolino.it
  * License:           GPL v2 or later
@@ -16,7 +16,7 @@
 if (!defined('ABSPATH')) exit;
 
 // Costanti
-define('DBSA_VERSION',    '3.0.0');
+define('DBSA_VERSION',    '3.0.3');
 define('DBSA_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DBSA_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DBSA_PLUGIN_FILE', __FILE__);

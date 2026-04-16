@@ -119,9 +119,10 @@ $events_enabled = !empty($settings['track_outbound']) || !empty($settings['track
                     </div>
                 <?php else :
                     // Trova il massimo per calcolare le proporzioni
-                    $max_scroll = max(array_column($scroll_depth, 'users'), 1);
+                    $max_scroll = max(array_map('intval', array_column($scroll_depth, 'users')));
+                    $max_scroll = max($max_scroll, 1);
                     foreach ($scroll_depth as $s) :
-                        $pct_bar = round(($s['users'] / $max_scroll) * 100);
+                        $pct_bar = round(((int) $s['users'] / $max_scroll) * 100);
                 ?>
                     <div class="dbsa-scroll-row">
                         <div class="dbsa-scroll-label">

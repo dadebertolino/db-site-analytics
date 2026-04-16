@@ -116,6 +116,9 @@ db-site-analytics/
 
 ## Changelog
 
+### 3.0.3
+- Fix: "Unsupported operand types" nella dashboard — `$wpdb->get_results()` restituisce stringhe, aggiunti cast `(int)` e `array_map('intval', ...)` prima di operazioni aritmetiche in `dashboard.php` e `events.php`
+
 ### 3.0.2
 - Fix: removed union return types (`int|false`) incompatible with PHP 7.4
 

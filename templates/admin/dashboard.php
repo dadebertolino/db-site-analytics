@@ -13,16 +13,25 @@ if (!defined('ABSPATH')) exit;
 // Defaults per variabili Fase 2 (retrocompatibilità)
 $browsers   = $browsers   ?? array();
 $os_list    = $os_list    ?? array();
-$comparison = $comparison ?? array('current' => array('pageviews' => 0, 'visitors' => 0), 'previous' => array('pageviews' => 0, 'visitors' => 0));
-$dl_total   = $dl_total   ?? 0;
+$comparison = $comparison ?? array(
+    'current'  => array('pageviews' => 0, 'visitors' => 0),
+    'previous' => array('pageviews' => 0, 'visitors' => 0),
+    'prev_from' => '',
+    'prev_to'   => '',
+);
+$dl_total   = (int) ($dl_total ?? 0);
 
-// Helper: calcola variazione percentuale
-function dbsa_pct_change(int $current, int $prev): string {
+// Helper: calcola variazione percentuale (cast esplicito — wpdb restituisce stringhe)
+function dbsa_pct_change($current, $prev) {
+    $current = (int) $current;
+    $prev    = (int) $prev;
     if ($prev === 0) return $current > 0 ? '+100%' : '—';
     $pct = round((($current - $prev) / $prev) * 100, 1);
     return ($pct >= 0 ? '+' : '') . $pct . '%';
 }
-function dbsa_pct_class(int $current, int $prev): string {
+function dbsa_pct_class($current, $prev) {
+    $current = (int) $current;
+    $prev    = (int) $prev;
     if ($prev === 0) return '';
     return $current >= $prev ? 'dbsa-trend-up' : 'dbsa-trend-down';
 }
@@ -322,9 +331,10 @@ foreach ($devices as $d) {
                 <?php if (empty($browsers)) : ?>
                     <div class="db-ui-empty"><span class="db-ui-empty-icon">🌐</span><span class="db-ui-empty-text"><?php esc_html_e('Nessun dato.', 'db-site-analytics'); ?></span></div>
                 <?php else :
-                    $max_br = max(array_column($browsers, 'total'), 1);
+                    $max_br = max(array_map('intval', array_column($browsers, 'total')));
+                    $max_br = max($max_br, 1);
                     foreach ($browsers as $b) :
-                        $pct = round(($b['total'] / $max_br) * 100);
+                        $pct = round(((int) $b['total'] / $max_br) * 100);
                 ?>
                     <div class="dbsa-bar-row">
                         <span class="dbsa-bar-label"><?php echo esc_html($b['browser']); ?></span>
@@ -344,9 +354,10 @@ foreach ($devices as $d) {
                 <?php if (empty($os_list)) : ?>
                     <div class="db-ui-empty"><span class="db-ui-empty-icon">💻</span><span class="db-ui-empty-text"><?php esc_html_e('Nessun dato.', 'db-site-analytics'); ?></span></div>
                 <?php else :
-                    $max_os = max(array_column($os_list, 'total'), 1);
+                    $max_os = max(array_map('intval', array_column($os_list, 'total')));
+                    $max_os = max($max_os, 1);
                     foreach ($os_list as $o) :
-                        $pct = round(($o['total'] / $max_os) * 100);
+                        $pct = round(((int) $o['total'] / $max_os) * 100);
                 ?>
                     <div class="dbsa-bar-row">
                         <span class="dbsa-bar-label"><?php echo esc_html($o['os']); ?></span>
