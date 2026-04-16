@@ -1,0 +1,409 @@
+/**
+ * DB Site Analytics — Admin CSS
+ * Usa variabili di db-admin-ui.css
+ */
+
+/* -----------------------------------------------------------------------
+   Layout Dashboard
+------------------------------------------------------------------------ */
+
+.dbsa-dashboard {
+    max-width: 1400px;
+}
+
+/* Barra filtro date */
+.dbsa-filter-bar .db-ui-card-body {
+    padding: 12px 20px;
+}
+.dbsa-filter-bar form {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    flex-wrap: wrap;
+}
+.dbsa-filter-bar label {
+    font-weight: 500;
+    color: var(--db-text-muted);
+}
+.dbsa-filter-bar input[type="date"] {
+    border: 1px solid var(--db-border);
+    border-radius: var(--db-radius-sm);
+    padding: 5px 10px;
+    font-size: 13px;
+    color: var(--db-text);
+}
+
+/* KPI Grid */
+.dbsa-kpi-grid {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 16px;
+    margin: 16px 0;
+}
+.dbsa-kpi-card .db-ui-card-body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: 24px 16px;
+    text-align: center;
+}
+.dbsa-kpi-icon {
+    font-size: 28px;
+    margin-bottom: 8px;
+}
+.dbsa-kpi-value {
+    font-size: 32px;
+    font-weight: 700;
+    color: var(--db-primary);
+    line-height: 1.1;
+}
+.dbsa-kpi-label {
+    font-size: 12px;
+    color: var(--db-text-muted);
+    margin-top: 4px;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+/* Griglia 2 colonne */
+.dbsa-grid-2 {
+    display: grid;
+    grid-template-columns: 1fr 380px;
+    gap: 16px;
+    margin-top: 16px;
+}
+.dbsa-col-right {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Tabelle dentro card */
+.dbsa-table-wrap {
+    padding: 0;
+    overflow-x: auto;
+}
+.dbsa-table-wrap .db-ui-table {
+    margin: 0;
+    border-radius: 0;
+    box-shadow: none;
+    border: none;
+}
+
+/* Device chart */
+.dbsa-device-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 16px;
+}
+
+/* -----------------------------------------------------------------------
+   Settings
+------------------------------------------------------------------------ */
+
+.dbsa-settings-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+.dbsa-field-row {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+.dbsa-field-row label {
+    font-weight: 500;
+    cursor: pointer;
+}
+.dbsa-field-row .description {
+    color: var(--db-text-muted);
+    font-size: 13px;
+    margin: 0;
+}
+.dbsa-roles-grid {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px 20px;
+    margin-top: 6px;
+}
+.dbsa-roles-grid label {
+    font-weight: 400;
+    font-size: 13px;
+}
+.dbsa-submit-row {
+    margin: 20px 0;
+}
+
+/* -----------------------------------------------------------------------
+   Widget dashboard WP
+------------------------------------------------------------------------ */
+
+.dbsa-widget-stats {
+    display: flex;
+    gap: 16px;
+    margin-bottom: 12px;
+}
+.dbsa-widget-stat {
+    flex: 1;
+    text-align: center;
+    background: var(--db-bg-subtle);
+    border-radius: var(--db-radius-sm);
+    padding: 10px 8px;
+}
+.dbsa-widget-value {
+    display: block;
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--db-primary);
+}
+.dbsa-widget-label {
+    display: block;
+    font-size: 11px;
+    color: var(--db-text-muted);
+    margin-top: 2px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+}
+.dbsa-widget-top {
+    font-size: 13px;
+    margin-bottom: 10px;
+    color: var(--db-text-muted);
+}
+.dbsa-widget-top a {
+    display: block;
+    font-weight: 500;
+    color: var(--db-text);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.dbsa-widget-link {
+    display: inline-block;
+}
+
+/* -----------------------------------------------------------------------
+   Fase 2 — Confronto periodi
+------------------------------------------------------------------------ */
+
+.dbsa-period-label {
+    font-size: 12px;
+    font-weight: 400;
+}
+.db-ui-card-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    gap: 8px;
+}
+
+.dbsa-comparison-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+    gap: 20px;
+}
+.dbsa-comparison-item {
+    display: flex;
+    gap: 14px;
+    align-items: flex-start;
+}
+.dbsa-comparison-icon {
+    font-size: 28px;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+.dbsa-comparison-data {
+    flex: 1;
+}
+.dbsa-comparison-label {
+    font-size: 12px;
+    text-transform: uppercase;
+    letter-spacing: 0.4px;
+    color: var(--db-text-muted);
+    margin-bottom: 4px;
+}
+.dbsa-comparison-row {
+    display: flex;
+    align-items: baseline;
+    gap: 8px;
+    margin-bottom: 8px;
+}
+.dbsa-comparison-current {
+    font-size: 24px;
+    font-weight: 700;
+    color: var(--db-text);
+}
+.dbsa-comparison-prev {
+    font-size: 13px;
+    color: var(--db-text-muted);
+}
+.dbsa-comparison-pct {
+    font-size: 13px;
+    font-weight: 600;
+    padding: 2px 6px;
+    border-radius: 4px;
+    background: var(--db-bg-subtle);
+    color: var(--db-text-muted);
+}
+.dbsa-trend-up {
+    background: var(--db-success-light);
+    color: var(--db-success);
+}
+.dbsa-trend-down {
+    background: var(--db-danger-light);
+    color: var(--db-danger);
+}
+
+/* Mini bar confronto */
+.dbsa-mini-bars {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+.dbsa-mini-bar {
+    height: 6px;
+    border-radius: 3px;
+    min-width: 4px;
+    transition: width 0.4s ease;
+}
+.dbsa-mini-bar-current  { background: var(--db-primary); }
+.dbsa-mini-bar-prev     { background: var(--db-border); }
+
+/* -----------------------------------------------------------------------
+   Fase 2 — Grid 3 colonne + bar rows
+------------------------------------------------------------------------ */
+
+.dbsa-grid-3 {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 16px;
+    margin-top: 16px;
+}
+
+.dbsa-bar-row {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 10px;
+}
+.dbsa-bar-row:last-child { margin-bottom: 0; }
+.dbsa-bar-label {
+    width: 80px;
+    flex-shrink: 0;
+    font-size: 13px;
+    color: var(--db-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.dbsa-inline-bar {
+    flex: 1;
+    height: 8px;
+}
+.dbsa-bar-value {
+    width: 40px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--db-text-muted);
+    flex-shrink: 0;
+}
+
+.dbsa-dl-kpi {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    padding: 28px 20px;
+}
+
+/* Download table extras */
+.dbsa-url-muted {
+    font-size: 11px;
+    color: var(--db-text-muted);
+    margin-top: 2px;
+}
+
+/* -----------------------------------------------------------------------
+   Responsive — Fase 2
+------------------------------------------------------------------------ */
+
+@media (max-width: 1100px) {
+    .dbsa-grid-3 {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 782px) {
+    .dbsa-grid-3 {
+        grid-template-columns: 1fr;
+    }
+    .dbsa-comparison-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* -----------------------------------------------------------------------
+   Fase 3 — Scroll depth + Events
+------------------------------------------------------------------------ */
+
+.dbsa-scroll-row {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 12px;
+}
+.dbsa-scroll-row:last-child { margin-bottom: 0; }
+.dbsa-scroll-label {
+    width: 52px;
+    flex-shrink: 0;
+}
+.dbsa-scroll-pct {
+    display: inline-block;
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--db-text);
+    background: var(--db-bg-subtle);
+    border-radius: var(--db-radius-sm);
+    padding: 2px 8px;
+    text-align: center;
+    min-width: 44px;
+}
+.dbsa-scroll-bar {
+    flex: 1;
+    height: 10px;
+    border-radius: 5px;
+}
+.dbsa-scroll-users {
+    width: 80px;
+    text-align: right;
+    font-size: 12px;
+    color: var(--db-text-muted);
+    flex-shrink: 0;
+}
+
+/* -----------------------------------------------------------------------
+   Responsive
+------------------------------------------------------------------------ */
+
+@media (max-width: 1200px) {
+    .dbsa-grid-2 {
+        grid-template-columns: 1fr;
+    }
+}
+@media (max-width: 782px) {
+    .dbsa-kpi-grid {
+        grid-template-columns: repeat(2, 1fr);
+    }
+}
+@media (max-width: 480px) {
+    .dbsa-kpi-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+/* Reduced motion */
+@media (prefers-reduced-motion: reduce) {
+    * { transition: none !important; animation: none !important; }
+}

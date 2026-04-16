@@ -1,0 +1,21 @@
+/**
+ * DB Site Analytics — Frontend CSS
+ * Stili per lo shortcode [dbsa_views].
+ * Leggero, non opinionated — override facile dal tema.
+ */
+
+.dbsa-views,
+.dbsa-views-compact {
+    display: inline;
+    font-size: inherit;
+    color: inherit;
+}
+
+.dbsa-views strong,
+.dbsa-views-compact .dbsa-views-count {
+    font-weight: 700;
+}
+
+.dbsa-views-count {
+    font-variant-numeric: tabular-nums;
+}
