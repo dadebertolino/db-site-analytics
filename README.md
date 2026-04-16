@@ -1,42 +1,42 @@
 # DB Site Analytics
 
-**Plugin WordPress per il tracciamento delle visite senza dipendenze esterne.**
+**Server-side WordPress visit tracking — no cookies, no external services, no tracking scripts.**
 
-Zero cookie. Zero JavaScript di tracking. Zero servizi esterni. I dati restano nel tuo database. GDPR compliant by design.
+All data stays in your WordPress database. GDPR compliant by design.
 
 ---
 
-## Caratteristiche
+## Features
 
-### Tracciamento
-- **Server-side** via hook `template_redirect` — nessun JS iniettato nel frontend, nessun impatto sulle performance, invisibile agli ad-blocker
-- **Nessun IP salvato** — visitor hash giornaliero anonimo non reversibile (SHA-256 + salt rotante ogni 24h)
-- **Nessun cookie** di profilazione o sessione
-- **Filtro bot/crawler** automatico (lista di 30+ pattern UA)
-- Parsing User-Agent leggero per device, browser e OS
-- Esclusione configurabile per ruoli, percorsi e utenti loggati
+### Tracking
+- **Server-side** via `template_redirect` hook — no scripts injected in the frontend, no performance impact, invisible to ad-blockers
+- **No IP address stored** — daily anonymous non-reversible visitor hash (SHA-256 + daily rotating salt)
+- **No cookies** of any kind
+- **Bot/crawler filter** — 30+ User-Agent patterns detected automatically
+- Lightweight User-Agent parsing for device, browser and OS (no external library)
+- Configurable exclusions for user roles, URL paths and logged-in users
 
 ### Dashboard
-- Grafico visite (pageview + visitatori unici) con filtro date
-- KPI: oggi, 7 giorni, periodo selezionato
-- **Confronto periodi** con variazione percentuale e mini-bar
-- Top 10 pagine e Top 10 referrer
-- Breakdown dispositivi (donut), browser e OS (bar inline)
-- Widget nella dashboard principale di WordPress
-- Export CSV pageview, download ed eventi (BOM UTF-8, compatibile Excel)
+- Visit chart (pageviews + unique visitors) with custom date filter
+- KPIs: today, last 7 days, selected period
+- **Period comparison** with percentage change and mini-bars
+- Top 10 pages and Top 10 referrers
+- Device breakdown (donut), browser and OS (inline bars)
+- WordPress dashboard widget with quick summary
+- CSV export for pageviews, downloads and events (UTF-8 BOM, Excel-compatible)
 
-### Download tracking *(opzionale)*
-- Intercetta click su link a file con estensioni configurabili
-- JS frontend ~1KB (sendBeacon + fallback XHR)
-- Pagina dedicata con top file scaricati, visitatori unici, pagina di provenienza
+### Download tracking *(optional)*
+- Intercepts clicks on file links with configurable extensions
+- ~1KB frontend script (sendBeacon + XHR fallback)
+- Dedicated admin page with top downloaded files, unique visitors and source page
 
-### Tracking eventi *(opzionale)*
-- **Outbound link** — click su link che portano fuori dal sito
-- **Scroll depth** — soglie 25%, 50%, 75%, 100%
-- Pagina dedicata con tabella outbound links e barre scroll depth
-- Export CSV eventi
+### Event tracking *(optional)*
+- **Outbound links** — clicks on links leaving the site
+- **Scroll depth** — thresholds at 25%, 50%, 75%, 100%
+- Dedicated admin page with outbound link table and scroll depth bars
+- CSV export for events
 
-### REST API *(autenticata, richiede `manage_options`)*
+### REST API *(authenticated, requires `manage_options`)*
 ```
 GET /wp-json/dbsa/v1/stats
 GET /wp-json/dbsa/v1/stats/pages
@@ -45,36 +45,43 @@ GET /wp-json/dbsa/v1/stats/devices
 GET /wp-json/dbsa/v1/stats/daily
 ```
 
-### Shortcode contatore visite
+### Visit counter shortcode
 ```
-[dbsa_views]
-[dbsa_views period="7"]
-[dbsa_views page_id="123"]
-[dbsa_views type="visitors"]
-[dbsa_views format="compact"]
-[dbsa_views format="number"]
+[dbsa_views]                         current page views (last 30 days)
+[dbsa_views period="7"]              last 7 days
+[dbsa_views page_id="123"]           specific page
+[dbsa_views type="visitors"]         unique visitors
+[dbsa_views format="compact"]        "1,234 visits"
+[dbsa_views format="number"]         number only
 ```
 
 ---
 
 ## Privacy & GDPR
 
-Non richiede consenso: non raccoglie IP, non installa cookie, non invia dati a terzi.
-Il `visitor_hash` è un contatore anonimo giornaliero: `SHA256(IP + UA + salt_giornaliero)` — irrecuperabile dopo 24h.
+This plugin **does not require consent** under GDPR/ePrivacy because:
+
+- ❌ No IP addresses collected (never stored, not even anonymised)
+- ❌ No cookies of any kind
+- ❌ No data sent to third-party services
+- ❌ No cross-session user profiling
+
+The `visitor_hash` is an anonymous daily counter: `SHA256(IP + UA + daily_salt)`. The salt rotates every night — after 24h the hash cannot be linked to any visitor.
 
 ---
 
-## Installazione
+## Installation
 
-1. Scarica lo ZIP dalla pagina [Releases](https://github.com/dadebertolino/db-site-analytics/releases)
-2. WordPress → Plugin → Aggiungi nuovo → Carica plugin → Attiva
-3. **Analytics** nel menu laterale
+1. Download the ZIP from [GitHub Releases](https://github.com/dadebertolino/db-site-analytics/releases)
+2. Go to **Plugins → Add New → Upload Plugin**
+3. Upload the ZIP and activate
+4. Find the plugin under **Analytics** in the admin sidebar
 
-**Requisiti:** WordPress 5.8+ · PHP 7.4+ · MySQL 5.6+
+**Requirements:** WordPress 5.8+ · PHP 7.4+ · MySQL 5.6+
 
 ---
 
-## Struttura
+## File Structure
 
 ```
 db-site-analytics/
@@ -97,7 +104,8 @@ db-site-analytics/
 │   └── widget.php
 ├── assets/css/
 │   ├── db-admin-ui.css
-│   └── admin.css
+│   ├── admin.css
+│   └── frontend.css
 ├── assets/js/
 │   ├── downloader.js
 │   └── events.js
@@ -109,40 +117,40 @@ db-site-analytics/
 ## Changelog
 
 ### 3.0.2
-- Fix: rimossi return type union (`int|false`) incompatibili con PHP 7.4
+- Fix: removed union return types (`int|false`) incompatible with PHP 7.4
 
 ### 3.0.1
-- Fix: hook `enqueue_assets` esplicitati per tutte le sottopagine admin
-- Fix: defaults impostazioni completi all'attivazione (Fase 2 e 3)
-- Fix: `ajax_get_stats` restituisce ora tutti i dati dashboard
-- Fix: backslash superfluo in settings template
-- Aggiunto: `assets/css/frontend.css` per shortcode `[dbsa_views]`
-- Aggiunto: `LICENSE` e `readme.txt`
+- Fix: explicit hook checks in `enqueue_assets` for all admin subpages
+- Fix: complete settings defaults on activation (Phase 2 and 3)
+- Fix: `ajax_get_stats` now returns all dashboard data
+- Fix: spurious backslash in settings template
+- Added: `assets/css/frontend.css` for `[dbsa_views]` shortcode
+- Added: `LICENSE` and `readme.txt`
 
 ### 3.0.0
-- REST API: 5 endpoint autenticati (`/stats`, `/stats/pages`, `/stats/referrers`, `/stats/devices`, `/stats/daily`)
-- Shortcode `[dbsa_views]` con parametri `page_id`, `period`, `type`, `format`
-- Tracking eventi: outbound link click e scroll depth (25/50/75/100%)
-- Pagina admin "Eventi" con tabella outbound e barre scroll depth
-- Export CSV eventi
-- Tabella DB `{prefix}dbsa_events`
+- REST API: 5 authenticated endpoints
+- `[dbsa_views]` shortcode with `page_id`, `period`, `type`, `format` parameters
+- Event tracking: outbound link clicks and scroll depth (25/50/75/100%)
+- New "Events" admin page
+- CSV export for events
+- `{prefix}dbsa_events` database table
 
 ### 2.0.0
-- Dashboard: confronto periodo corrente vs precedente con variazione %
-- Breakdown browser e OS (bar inline)
-- Download tracking con JS ~1KB e pagina dedicata
-- Export CSV pageview e download (BOM UTF-8)
-- Classi `DBSA_Exporter` e `DBSA_Downloader`
+- Dashboard: period comparison with percentage change
+- Browser and OS breakdown (inline bars)
+- Download tracking with ~1KB frontend script
+- Dedicated Downloads admin page
+- CSV export for pageviews and downloads (UTF-8 BOM)
 
 ### 1.0.0
-- MVP: tracking pageview server-side, dashboard base, filtro bot, widget WP, GitHub auto-updater
+- Initial release: server-side pageview tracking, dashboard, bot filter, WP widget, GitHub auto-updater
 
 ---
 
-## Autore
+## Author
 
 **Davide Bertolino** — [davidebertolino.it](https://www.davidebertolino.it)
 
-## Licenza
+## License
 
-GPL v2 or later
+GPL v2 or later — [gnu.org/licenses/gpl-2.0.html](https://www.gnu.org/licenses/gpl-2.0.html)
