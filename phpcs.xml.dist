@@ -1,0 +1,82 @@
+<?xml version="1.0"?>
+<ruleset name="DB Site Analytics">
+    <description>WPCS pragmatico: regole sostanziali (sicurezza, DB, i18n), stile del progetto preservato.</description>
+
+    <file>.</file>
+    <exclude-pattern>*/node_modules/*</exclude-pattern>
+    <exclude-pattern>*/vendor/*</exclude-pattern>
+
+    <arg value="ps"/>
+    <arg name="extensions" value="php"/>
+    <arg name="parallel" value="4"/>
+
+    <config name="minimum_wp_version" value="5.8"/>
+
+    <rule ref="WordPress-Extra">
+        <!-- Stile del progetto: 4 spazi, niente spazi interni alle parentesi, niente Yoda -->
+        <exclude name="Generic.WhiteSpace.DisallowSpaceIndent"/>
+        <exclude name="Generic.WhiteSpace.ScopeIndent"/>
+        <exclude name="Generic.WhiteSpace.ArbitraryParenthesesSpacing"/>
+        <exclude name="Generic.Formatting.MultipleStatementAlignment"/>
+        <exclude name="Generic.Formatting.DisallowMultipleStatements"/>
+        <exclude name="Generic.Functions.FunctionCallArgumentSpacing"/>
+        <exclude name="Generic.ControlStructures.InlineControlStructure"/>
+        <exclude name="PEAR.Functions.FunctionCallSignature"/>
+        <exclude name="PSR2.Classes.ClassDeclaration"/>
+        <exclude name="PSR2.ControlStructures.SwitchDeclaration"/>
+        <exclude name="Squiz.Functions.FunctionDeclarationArgumentSpacing"/>
+        <exclude name="Squiz.Functions.MultiLineFunctionDeclaration"/>
+        <exclude name="Squiz.Strings.DoubleQuoteUsage"/>
+        <exclude name="Squiz.PHP.EmbeddedPhp"/>
+        <exclude name="WordPress.WhiteSpace.ControlStructureSpacing"/>
+        <exclude name="WordPress.WhiteSpace.OperatorSpacing"/>
+        <exclude name="WordPress.WhiteSpace.CastStructureSpacing"/>
+        <exclude name="WordPress.Arrays.ArrayDeclarationSpacing"/>
+        <exclude name="WordPress.Arrays.ArrayIndentation"/>
+        <exclude name="WordPress.Arrays.ArrayKeySpacingRestrictions"/>
+        <exclude name="WordPress.Arrays.MultipleStatementAlignment"/>
+        <exclude name="WordPress.PHP.YodaConditions"/>
+        <exclude name="NormalizedArrays.Arrays.ArrayBraceSpacing"/>
+        <exclude name="NormalizedArrays.Arrays.CommaAfterLast"/>
+        <exclude name="Universal.WhiteSpace.PrecisionAlignment"/>
+        <exclude name="Universal.Operators.DisallowStandalonePostIncrementDecrement"/>
+        <exclude name="Universal.Operators.DisallowShortTernary"/>
+
+        <!-- Convenzione naming file del progetto (class-tracker.php, non class-dbsa-tracker.php) -->
+        <exclude name="WordPress.Files.FileName"/>
+    </rule>
+
+    <!-- Nomi tabella interpolati: provengono sempre da $wpdb->prefix, non da input -->
+    <config name="ignore_warnings_on_exit" value="1"/>
+
+    <rule ref="WordPress.DB.PreparedSQL">
+        <exclude-pattern>inc/class-db\.php</exclude-pattern>
+        <exclude-pattern>inc/class-shortcodes\.php</exclude-pattern>
+        <exclude-pattern>uninstall\.php</exclude-pattern>
+    </rule>
+
+    <!-- Endpoint di tracking anonimi: nonce rimosso by design in v3.1.0
+         (page caching), protetti da rate limiting + validazione -->
+    <rule ref="WordPress.Security.NonceVerification">
+        <exclude-pattern>inc/class-downloader\.php</exclude-pattern>
+        <exclude-pattern>inc/class-events\.php</exclude-pattern>
+        <exclude-pattern>inc/class-tracker\.php</exclude-pattern>
+    </rule>
+
+    <!-- GeoIP/export/uninstall usano il filesystem direttamente by design
+         (streaming gz, sostituzione atomica, php://output) -->
+    <rule ref="WordPress.WP.AlternativeFunctions">
+        <exclude-pattern>inc/class-geoip\.php</exclude-pattern>
+        <exclude-pattern>inc/class-mmdb-reader\.php</exclude-pattern>
+        <exclude-pattern>inc/class-exporter\.php</exclude-pattern>
+        <exclude-pattern>uninstall\.php</exclude-pattern>
+    </rule>
+    <rule ref="WordPress.PHP.NoSilencedErrors">
+        <exclude-pattern>inc/class-geoip\.php</exclude-pattern>
+        <exclude-pattern>uninstall\.php</exclude-pattern>
+    </rule>
+    <rule ref="Generic.PHP.NoSilencedErrors">
+        <exclude-pattern>inc/class-geoip\.php</exclude-pattern>
+        <exclude-pattern>uninstall\.php</exclude-pattern>
+    </rule>
+</ruleset>

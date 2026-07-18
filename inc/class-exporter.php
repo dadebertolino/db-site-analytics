@@ -32,10 +32,10 @@ class DBSA_Exporter {
             return;
         }
         if (!current_user_can('manage_options')) {
-            wp_die(__('Permesso negato.', 'db-site-analytics'));
+            wp_die(esc_html__('Permesso negato.', 'db-site-analytics'));
         }
         if (!isset($_GET['_wpnonce']) || !wp_verify_nonce(sanitize_key($_GET['_wpnonce']), 'dbsa_export')) {
-            wp_die(__('Nonce non valido.', 'db-site-analytics'));
+            wp_die(esc_html__('Nonce non valido.', 'db-site-analytics'));
         }
 
         $type = sanitize_key($_GET['dbsa_export']); // 'pageviews' | 'downloads'

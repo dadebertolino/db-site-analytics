@@ -36,6 +36,13 @@ All data stays in your WordPress database. GDPR compliant by design.
 - Dedicated admin page with outbound link table and scroll depth bars
 - CSV export for events
 
+### Country geolocation (GeoIP) *(v3.2.0)*
+- Self-contained: free **DB-IP Country Lite** database (MMDB) downloaded locally into `wp-content/uploads/dbsa-geoip/` — no registration, no API key, no external service at runtime
+- Pure-PHP MMDB reader, zero Composer dependencies (24/28/32-bit records, IPv4/IPv6)
+- Automatic monthly refresh via cron, manual update button in settings
+- The visitor IP is used in memory only for the lookup and never stored; only the ISO country code is written to the database
+- Attribution: [IP Geolocation by DB-IP](https://db-ip.com) (CC BY 4.0)
+
 ### REST API *(authenticated, requires `manage_options`)*
 ```
 GET /wp-json/dbsa/v1/stats
@@ -43,6 +50,8 @@ GET /wp-json/dbsa/v1/stats/pages
 GET /wp-json/dbsa/v1/stats/referrers
 GET /wp-json/dbsa/v1/stats/devices
 GET /wp-json/dbsa/v1/stats/daily
+GET /wp-json/dbsa/v1/stats/downloads
+GET /wp-json/dbsa/v1/stats/events
 ```
 
 ### Visit counter shortcode
@@ -87,6 +96,9 @@ The `visitor_hash` is an anonymous daily counter: `SHA256(IP + UA + daily_salt)`
 db-site-analytics/
 ├── db-site-analytics.php
 ├── inc/
+│   ├── class-mmdb-reader.php
+│   ├── class-geoip.php
+│   ├── class-visitor.php
 │   ├── class-db.php
 │   ├── class-tracker.php
 │   ├── class-downloader.php
@@ -115,6 +127,30 @@ db-site-analytics/
 ---
 
 ## Changelog
+
+### 3.2.0
+- New: self-contained country geolocation (GeoIP) — free DB-IP Country Lite database downloaded locally; no registration, no external service at runtime
+- New: pure-PHP MMDB reader (`DBSA_MMDB_Reader`), zero Composer dependencies, 24/28/32-bit records, IPv4/IPv6 (validated against official MaxMind test databases)
+- New: "Countries" dashboard card with per-nation breakdown
+- New: `countries` field in the `/stats/devices` REST endpoint
+- New: `/stats/downloads` and `/stats/events` REST endpoints — the REST API now covers every metric (7 endpoints)
+- New: GeoIP settings section — enable toggle, database status (size/build date), manual update button; automatic download on activation and monthly refresh via cron
+- Privacy: the IP is used in memory only for the lookup and never stored; only the ISO country code is written to the database
+- Attribution: "IP Geolocation by DB-IP" (CC BY 4.0) shown in dashboard and settings
+- Quality: GitHub Actions CI (PHPCS with WPCS ruleset, PHP 7.4/8.3 lint) and release workflow attaching the plugin ZIP; PHPCS audit fixes — escaping on `wp_die` and exceptions, `wp_safe_redirect`, `wp_parse_url`, translators comments, renamed template variables shadowing WordPress globals
+
+### 3.1.0
+- Critical fix: removed nonce from download/event tracking endpoints — with page caching the cached nonce expired and tracking silently failed
+- Security: per-IP rate limiting on public endpoints (20 downloads/min, 30 events/min)
+- Security: strict event validation (scroll_depth limited to 25/50/75/100%, outbound_click must be a valid external URL, download extension must match configured list)
+- Security: new "behind proxy/CDN" setting — by default the IP is read only from `REMOTE_ADDR` (not spoofable); `X-Forwarded-For`/`CF-Connecting-IP` headers are used only when enabled
+- Performance: transient caching for `[dbsa_views]` shortcode (10 min), admin dashboard, widget and AJAX (2–5 min)
+- Performance: removed `SHOW TABLES` on every pageview — schema verified via versioned option (`dbsa_schema_version`)
+- Refactor: new `DBSA_Visitor` class — visitor hash, IP and salt logic centralized (previously duplicated in 3 classes)
+- Fix: atomic daily salt rotation via `add_option` (day-change race condition)
+- Fix: retention uses `UTC_TIMESTAMP()` instead of `NOW()` (`created_at` is stored in UTC) and deletes in 5000-row batches
+- Fix: cron scheduled at `tomorrow midnight` (previously fired immediately)
+- Fix: `(string)` cast on `parse_url` before `fnmatch` (PHP 8.1+ deprecation)
 
 ### 3.0.3
 - Fix: "Unsupported operand types" nella dashboard — `$wpdb->get_results()` restituisce stringhe, aggiunti cast `(int)` e `array_map('intval', ...)` prima di operazioni aritmetiche in `dashboard.php` e `events.php`

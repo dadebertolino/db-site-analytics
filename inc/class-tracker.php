@@ -57,7 +57,7 @@ class DBSA_Tracker {
         }
 
         // Esclusione percorsi personalizzati
-        $current_path = parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
+        $current_path = (string) wp_parse_url($_SERVER['REQUEST_URI'] ?? '', PHP_URL_PATH);
         $exclude_paths = sanitize_textarea_field($settings['exclude_paths'] ?? '');
         if (!empty($exclude_paths)) {
             foreach (array_filter(array_map('trim', explode("\n", $exclude_paths))) as $pattern) {
@@ -69,7 +69,7 @@ class DBSA_Tracker {
 
         // Raccolta dati
         $parsed_ua    = $this->parse_user_agent($ua);
-        $visitor_hash = $this->generate_visitor_hash();
+        $visitor_hash = DBSA_Visitor::generate_hash();
 
         DBSA_DB::instance()->insert_pageview(array(
             'page_url'     => $this->get_current_url(),
@@ -79,7 +79,7 @@ class DBSA_Tracker {
             'device_type'  => $parsed_ua['device'],
             'browser'      => $parsed_ua['browser'],
             'os'           => $parsed_ua['os'],
-            'country'      => '',   // Fase 3: GeoIP
+            'country'      => DBSA_GeoIP::instance()->country_code(DBSA_Visitor::get_client_ip()),
             'is_bot'       => 0,
         ));
     }
@@ -185,61 +185,6 @@ class DBSA_Tracker {
         }
 
         return compact('device', 'browser', 'os');
-    }
-
-    /**
-     * Hash giornaliero anonimo: SHA256(IP + UA + salt_giornaliero).
-     * Non è un cookie. Non è persistente. Non è reversibile dopo 24h.
-     */
-    private function generate_visitor_hash(): string {
-        $ip   = $this->get_client_ip();
-        $ua   = $this->get_user_agent();
-        $salt = $this->get_daily_salt();
-
-        return hash('sha256', $ip . $ua . $salt);
-    }
-
-    /**
-     * Ottiene o rigenera il salt giornaliero.
-     */
-    private function get_daily_salt(): string {
-        $today     = gmdate('Y-m-d');
-        $salt_date = get_option('dbsa_salt_date', '');
-
-        if ($salt_date !== $today) {
-            $salt = wp_generate_password(32, true, true);
-            update_option('dbsa_daily_salt', $salt);
-            update_option('dbsa_salt_date',  $today);
-            return $salt;
-        }
-
-        return get_option('dbsa_daily_salt', wp_generate_password(32, true, true));
-    }
-
-    /**
-     * Recupera IP reale considerando proxy/CDN comuni.
-     * NOTA: l'IP non viene mai salvato nel DB.
-     */
-    private function get_client_ip(): string {
-        $headers = array(
-            'HTTP_CF_CONNECTING_IP', // Cloudflare
-            'HTTP_X_FORWARDED_FOR',
-            'HTTP_X_REAL_IP',
-            'REMOTE_ADDR',
-        );
-
-        foreach ($headers as $header) {
-            if (!empty($_SERVER[$header])) {
-                $ip = sanitize_text_field(wp_unslash($_SERVER[$header]));
-                // Prendi solo il primo IP in liste comma-separated
-                $ip = trim(explode(',', $ip)[0]);
-                if (filter_var($ip, FILTER_VALIDATE_IP)) {
-                    return $ip;
-                }
-            }
-        }
-
-        return '0.0.0.0';
     }
 
     /**

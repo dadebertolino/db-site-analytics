@@ -86,15 +86,15 @@ $events_enabled = !empty($settings['track_outbound']) || !empty($settings['track
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($outbound as $link) : ?>
+                        <?php foreach ($outbound as $lnk) : ?>
                             <tr>
                                 <td>
-                                    <a href="<?php echo esc_url($link['url']); ?>" target="_blank" rel="noopener noreferrer">
-                                        <?php echo esc_html(parse_url($link['url'], PHP_URL_HOST) . (parse_url($link['url'], PHP_URL_PATH) ?: '')); ?>
+                                    <a href="<?php echo esc_url($lnk['url']); ?>" target="_blank" rel="noopener noreferrer">
+                                        <?php echo esc_html(parse_url($lnk['url'], PHP_URL_HOST) . (parse_url($lnk['url'], PHP_URL_PATH) ?: '')); ?>
                                         <span class="screen-reader-text"><?php esc_html_e('(si apre in una nuova finestra)', 'db-site-analytics'); ?></span>
                                     </a>
                                 </td>
-                                <td><strong><?php echo esc_html(number_format_i18n($link['clicks'])); ?></strong></td>
+                                <td><strong><?php echo esc_html(number_format_i18n($lnk['clicks'])); ?></strong></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
@@ -121,12 +121,12 @@ $events_enabled = !empty($settings['track_outbound']) || !empty($settings['track
                     // Trova il massimo per calcolare le proporzioni
                     $max_scroll = max(array_map('intval', array_column($scroll_depth, 'users')));
                     $max_scroll = max($max_scroll, 1);
-                    foreach ($scroll_depth as $s) :
-                        $pct_bar = round(((int) $s['users'] / $max_scroll) * 100);
+                    foreach ($scroll_depth as $sd) :
+                        $pct_bar = round(((int) $sd['users'] / $max_scroll) * 100);
                 ?>
                     <div class="dbsa-scroll-row">
                         <div class="dbsa-scroll-label">
-                            <span class="dbsa-scroll-pct"><?php echo esc_html($s['depth']); ?></span>
+                            <span class="dbsa-scroll-pct"><?php echo esc_html($sd['depth']); ?></span>
                         </div>
                         <div class="db-ui-progress dbsa-scroll-bar">
                             <div class="db-ui-progress-fill db-ui-progress-success"
@@ -135,8 +135,9 @@ $events_enabled = !empty($settings['track_outbound']) || !empty($settings['track
                         <span class="dbsa-scroll-users">
                             <?php
                             printf(
-                                esc_html(_n('%s utente', '%s utenti', $s['users'], 'db-site-analytics')),
-                                esc_html(number_format_i18n($s['users']))
+                                /* translators: %s: numero di utenti */
+                                esc_html(_n('%s utente', '%s utenti', $sd['users'], 'db-site-analytics')),
+                                esc_html(number_format_i18n($sd['users']))
                             );
                             ?>
                         </span>

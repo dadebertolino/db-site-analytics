@@ -3,7 +3,7 @@
  * Plugin Name:       DB Site Analytics
  * Plugin URI:        https://www.davidebertolino.it/progetti/db-site-analytics/
  * Description:       Tracciamento visite server-side senza cookie, senza JavaScript di tracking, senza servizi esterni. GDPR compliant by design.
- * Version:           3.0.3
+ * Version:           3.2.0
  * Author:            Davide Bertolino
  * Author URI:        https://www.davidebertolino.it
  * License:           GPL v2 or later
@@ -16,12 +16,15 @@
 if (!defined('ABSPATH')) exit;
 
 // Costanti
-define('DBSA_VERSION',    '3.0.3');
+define('DBSA_VERSION',    '3.2.0');
 define('DBSA_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DBSA_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DBSA_PLUGIN_FILE', __FILE__);
 
 // Autoload classi
+require_once DBSA_PLUGIN_DIR . 'inc/class-mmdb-reader.php';
+require_once DBSA_PLUGIN_DIR . 'inc/class-geoip.php';
+require_once DBSA_PLUGIN_DIR . 'inc/class-visitor.php';
 require_once DBSA_PLUGIN_DIR . 'inc/class-db.php';
 require_once DBSA_PLUGIN_DIR . 'inc/class-tracker.php';
 require_once DBSA_PLUGIN_DIR . 'inc/class-downloader.php';
@@ -65,6 +68,7 @@ final class DB_Site_Analytics {
 
     public function init_components(): void {
         DBSA_DB::instance();
+        DBSA_GeoIP::instance();
         DBSA_Tracker::instance();
         DBSA_Downloader::instance();
         DBSA_Events::instance();
@@ -82,6 +86,7 @@ final class DB_Site_Analytics {
         $db->create_tables();
         $db->create_downloads_table();
         $db->create_events_table();
+        update_option('dbsa_schema_version', DBSA_DB::SCHEMA_VERSION, false);
         $this->schedule_cron();
 
         // Genera salt giornaliero iniziale
@@ -102,6 +107,8 @@ final class DB_Site_Analytics {
                 'download_extensions' => DBSA_Downloader::DEFAULT_EXTENSIONS,
                 'track_outbound'      => 0,
                 'track_scroll'        => 0,
+                'trust_proxy'         => 0,
+                'enable_geoip'        => 0,
             ));
         }
     }
@@ -112,7 +119,7 @@ final class DB_Site_Analytics {
 
     private function schedule_cron(): void {
         if (!wp_next_scheduled('dbsa_daily_cron')) {
-            wp_schedule_event(strtotime('midnight'), 'daily', 'dbsa_daily_cron');
+            wp_schedule_event(strtotime('tomorrow midnight'), 'daily', 'dbsa_daily_cron');
         }
     }
 }

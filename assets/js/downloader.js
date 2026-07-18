@@ -23,25 +23,19 @@
     }
 
     function trackDownload(fileUrl, pageUrl) {
-        var data = new FormData();
-        data.append('action',   'dbsa_track_download');
-        data.append('nonce',    cfg.nonce);
-        data.append('file_url', fileUrl);
-        data.append('page_url', pageUrl);
+        // v3.1.0 — Niente nonce: compatibile con page caching
+        var params = new URLSearchParams();
+        params.append('action',   'dbsa_track_download');
+        params.append('file_url', fileUrl);
+        params.append('page_url', pageUrl);
 
-        // navigator.sendBeacon per non bloccare la navigazione
         if (navigator.sendBeacon) {
-            // sendBeacon non supporta FormData con action, usiamo URLSearchParams
-            var params = new URLSearchParams();
-            params.append('action',   'dbsa_track_download');
-            params.append('nonce',    cfg.nonce);
-            params.append('file_url', fileUrl);
-            params.append('page_url', pageUrl);
             navigator.sendBeacon(cfg.ajax_url, params);
         } else {
             var xhr = new XMLHttpRequest();
             xhr.open('POST', cfg.ajax_url, true);
-            xhr.send(data);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.send(params.toString());
         }
     }
 

@@ -4,7 +4,7 @@ Tags: analytics, statistics, gdpr, privacy, tracking
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.0.3
+Stable tag: 3.2.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -79,6 +79,30 @@ Il file `uninstall.php` rimuove tutte le tabelle del database e tutte le opzioni
 5. Impostazioni
 
 == Changelog ==
+
+= 3.2.0 =
+* Nuovo: geolocalizzazione paese (GeoIP) self-contained — database gratuito DB-IP Country Lite scaricato localmente, nessuna registrazione, nessun servizio esterno a runtime
+* Nuovo: reader MMDB in PHP puro (DBSA_MMDB_Reader), zero dipendenze Composer, supporto record 24/28/32 bit e IPv4/IPv6
+* Nuovo: card "Paesi" nella dashboard con breakdown per nazione
+* Nuovo: campo countries nell'endpoint REST /stats/devices
+* Nuovo: endpoint REST /stats/downloads e /stats/events — la REST API copre ora tutte le metriche (7 endpoint)
+* Nuovo: sezione GeoIP nelle impostazioni — attivazione, stato database (dimensione/build), aggiornamento manuale; download automatico all'attivazione e aggiornamento mensile via cron
+* Nota privacy: l'IP è usato solo in memoria per il lookup e mai salvato; nel database viene registrato esclusivamente il codice paese ISO
+* Attribuzione: "IP Geolocation by DB-IP" (CC BY 4.0) mostrata in dashboard e impostazioni
+* Qualità: CI GitHub Actions (PHPCS con ruleset WPCS, lint PHP 7.4/8.3) e workflow di release che allega lo ZIP; fix da audit PHPCS — escape su wp_die ed eccezioni, wp_safe_redirect, wp_parse_url, commenti translators, rinominate variabili template che oscuravano globali WordPress
+
+= 3.1.0 =
+* Fix critico: rimosso il nonce dagli endpoint di tracking download/eventi — con il page caching il nonce cachato scadeva e il tracking falliva silenziosamente
+* Sicurezza: rate limiting per IP sugli endpoint pubblici (20 download/min, 30 eventi/min)
+* Sicurezza: validazione stretta degli eventi (scroll_depth solo 25/50/75/100%, outbound_click solo URL esterni validi, estensione download tra quelle configurate)
+* Sicurezza: nuova impostazione "dietro proxy/CDN" — di default l'IP è letto solo da REMOTE_ADDR (non falsificabile); gli header X-Forwarded-For/CF-Connecting-IP vengono usati solo se l'opzione è attiva
+* Performance: cache transient per shortcode [dbsa_views] (10 min), dashboard admin, widget e AJAX (2-5 min)
+* Performance: eliminato SHOW TABLES a ogni pageview — verifica schema con opzione versionata (dbsa_schema_version)
+* Refactor: nuova classe DBSA_Visitor — hash visitatore, IP e salt centralizzati (prima duplicati in 3 classi)
+* Fix: rotazione salt atomica con add_option (race condition al cambio giorno)
+* Fix: retention usa UTC_TIMESTAMP invece di NOW() (created_at è in UTC) e cancella a batch da 5000 righe
+* Fix: cron schedulato a "tomorrow midnight" (prima partiva subito)
+* Fix: cast (string) su parse_url prima di fnmatch (deprecation PHP 8.1+)
 
 = 3.0.3 =
 * Fix: errore "Unsupported operand types" nella dashboard — aggiunti cast espliciti sui valori restituiti da wpdb prima di operazioni aritmetiche

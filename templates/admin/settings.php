@@ -31,6 +31,18 @@ $retention_opts = array(30, 60, 90, 180, 365);
         </div>
     <?php endif; ?>
 
+    <?php if (!empty($_GET['geoip_ok'])) : ?>
+        <div class="db-ui-alert db-ui-alert-success">
+            <span class="db-ui-alert-icon">✅</span>
+            <span><?php esc_html_e('Database GeoIP aggiornato.', 'db-site-analytics'); ?></span>
+        </div>
+    <?php elseif (!empty($_GET['geoip_err'])) : ?>
+        <div class="db-ui-alert db-ui-alert-error">
+            <span class="db-ui-alert-icon">❌</span>
+            <span><?php echo esc_html(get_option('dbsa_geoip_last_error', __('Aggiornamento GeoIP fallito.', 'db-site-analytics'))); ?></span>
+        </div>
+    <?php endif; ?>
+
     <form method="post" action="">
         <?php wp_nonce_field('dbsa_settings_nonce'); ?>
 
@@ -69,6 +81,16 @@ $retention_opts = array(30, 60, 90, 180, 365);
                             </label>
                         <?php endforeach; ?>
                     </div>
+                </div>
+
+                <hr class="db-ui-sep">
+
+                <div class="dbsa-field-row">
+                    <label>
+                        <input type="checkbox" name="trust_proxy" value="1" <?php checked(1, $settings['trust_proxy'] ?? 0); ?>>
+                        <?php esc_html_e('Il sito è dietro proxy/CDN (Cloudflare, reverse proxy)', 'db-site-analytics'); ?>
+                    </label>
+                    <p class="description"><?php esc_html_e('Attiva SOLO se il sito passa da Cloudflare o un reverse proxy: usa gli header X-Forwarded-For / CF-Connecting-IP per identificare i visitatori. Se disattivato viene usato solo REMOTE_ADDR (non falsificabile).', 'db-site-analytics'); ?></p>
                 </div>
 
                 <hr class="db-ui-sep">
@@ -130,6 +152,52 @@ $retention_opts = array(30, 60, 90, 180, 365);
             </div>
         </div>
 
+        <!-- GeoIP -->
+        <div class="db-ui-card">
+            <div class="db-ui-card-header"><h3>🌍 <?php esc_html_e('Geolocalizzazione (GeoIP)', 'db-site-analytics'); ?></h3></div>
+            <div class="db-ui-card-body dbsa-settings-body">
+
+                <div class="dbsa-field-row">
+                    <label>
+                        <input type="checkbox" name="enable_geoip" value="1" <?php checked(1, $settings['enable_geoip'] ?? 0); ?>>
+                        <?php esc_html_e('Abilita rilevamento del paese', 'db-site-analytics'); ?>
+                    </label>
+                    <p class="description"><?php esc_html_e('Usa il database gratuito DB-IP Country Lite (~10 MB), scaricato localmente in wp-content/uploads e aggiornato automaticamente ogni mese. Il lookup avviene interamente sul tuo server: nessun IP viene salvato né inviato a servizi esterni. All\'attivazione il database viene scaricato subito.', 'db-site-analytics'); ?></p>
+                </div>
+
+                <?php
+                $geoip_info = DBSA_GeoIP::instance()->database_info();
+                if ($geoip_info['exists']) :
+                ?>
+                <div class="dbsa-field-row">
+                    <p class="description">
+                        <strong><?php esc_html_e('Database presente.', 'db-site-analytics'); ?></strong>
+                        <?php
+                        printf(
+                            /* translators: 1: dimensione, 2: data build */
+                            esc_html__('Dimensione: %1$s — Build: %2$s', 'db-site-analytics'),
+                            esc_html(size_format($geoip_info['size'])),
+                            $geoip_info['build']
+                                ? esc_html(gmdate('d/m/Y', $geoip_info['build']))
+                                : esc_html(gmdate('d/m/Y', $geoip_info['mtime']))
+                        );
+                        ?>
+                    </p>
+                </div>
+                <?php elseif (!empty($settings['enable_geoip'])) : ?>
+                <div class="dbsa-field-row">
+                    <p class="description"><strong><?php esc_html_e('Database non ancora scaricato.', 'db-site-analytics'); ?></strong></p>
+                </div>
+                <?php endif; ?>
+
+                <p class="description" style="margin-top:8px;">
+                    <a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a>
+                    <?php esc_html_e('(licenza CC BY 4.0)', 'db-site-analytics'); ?>
+                </p>
+
+            </div>
+        </div>
+
         <!-- Retention -->
         <div class="db-ui-card">
             <div class="db-ui-card-header"><h3><?php esc_html_e('Conservazione dati', 'db-site-analytics'); ?></h3></div>
@@ -140,7 +208,10 @@ $retention_opts = array(30, 60, 90, 180, 365);
                     <select id="retention_days" name="retention_days">
                         <?php foreach ($retention_opts as $days) : ?>
                             <option value="<?php echo esc_attr($days); ?>" <?php selected($days, $settings['retention_days']); ?>>
-                                <?php printf(esc_html(_n('%d giorno', '%d giorni', $days, 'db-site-analytics')), $days); ?>
+                                <?php
+                                /* translators: %d: numero di giorni di conservazione */
+                                printf(esc_html(_n('%d giorno', '%d giorni', $days, 'db-site-analytics')), absint($days));
+                                ?>
                             </option>
                         <?php endforeach; ?>
                     </select>
@@ -169,4 +240,13 @@ $retention_opts = array(30, 60, 90, 180, 365);
         </div>
 
     </form>
+
+    <?php if (!empty($settings['enable_geoip'])) : ?>
+    <form method="post" action="" style="margin-top:12px;">
+        <?php wp_nonce_field('dbsa_geoip_update_nonce'); ?>
+        <button type="submit" name="dbsa_geoip_update" value="1" class="db-ui-btn db-ui-btn-secondary">
+            <?php esc_html_e('Aggiorna ora il database GeoIP', 'db-site-analytics'); ?>
+        </button>
+    </form>
+    <?php endif; ?>
 </div>

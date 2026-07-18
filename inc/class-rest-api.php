@@ -8,6 +8,9 @@
  * GET /wp-json/dbsa/v1/stats/pages
  * GET /wp-json/dbsa/v1/stats/referrers
  * GET /wp-json/dbsa/v1/stats/devices
+ * GET /wp-json/dbsa/v1/stats/daily
+ * GET /wp-json/dbsa/v1/stats/downloads   (v3.2.0)
+ * GET /wp-json/dbsa/v1/stats/events      (v3.2.0)
  *
  * @package DB_Site_Analytics
  */
@@ -91,6 +94,32 @@ class DBSA_REST_API {
             'permission_callback' => array($this, 'check_permission'),
             'args'                => $this->date_args(),
         ));
+
+        // Top download (v3.2.0)
+        register_rest_route(self::NAMESPACE, '/stats/downloads', array(
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => array($this, 'get_downloads'),
+            'permission_callback' => array($this, 'check_permission'),
+            'args'                => $this->date_args() + array(
+                'limit' => array(
+                    'default'           => 10,
+                    'sanitize_callback' => 'absint',
+                ),
+            ),
+        ));
+
+        // Eventi (v3.2.0)
+        register_rest_route(self::NAMESPACE, '/stats/events', array(
+            'methods'             => WP_REST_Server::READABLE,
+            'callback'            => array($this, 'get_events'),
+            'permission_callback' => array($this, 'check_permission'),
+            'args'                => $this->date_args() + array(
+                'limit' => array(
+                    'default'           => 20,
+                    'sanitize_callback' => 'absint',
+                ),
+            ),
+        ));
     }
 
     // -------------------------------------------------------------------------
@@ -162,7 +191,7 @@ class DBSA_REST_API {
             'data'   => array_map(function($r) {
                 return array(
                     'referrer'  => $r['referrer'],
-                    'host'      => parse_url($r['referrer'], PHP_URL_HOST) ?: $r['referrer'],
+                    'host'      => wp_parse_url($r['referrer'], PHP_URL_HOST) ?: $r['referrer'],
                     'pageviews' => (int) $r['pageviews'],
                 );
             }, $rows),
@@ -176,9 +205,10 @@ class DBSA_REST_API {
 
         return new WP_REST_Response(array(
             'period'   => array('from' => $from, 'to' => $to),
-            'devices'  => $db->get_device_breakdown($from, $to),
-            'browsers' => $db->get_browser_breakdown($from, $to),
-            'os'       => $db->get_os_breakdown($from, $to),
+            'devices'   => $db->get_device_breakdown($from, $to),
+            'browsers'  => $db->get_browser_breakdown($from, $to),
+            'os'        => $db->get_os_breakdown($from, $to),
+            'countries' => $db->get_country_breakdown($from, $to),
         ), 200);
     }
 
@@ -197,6 +227,53 @@ class DBSA_REST_API {
                     'visitors'  => (int) $r['visitors'],
                 );
             }, $rows),
+        ), 200);
+    }
+
+    public function get_downloads(WP_REST_Request $request): WP_REST_Response {
+        $from  = $request->get_param('from');
+        $to    = $request->get_param('to');
+        $limit = min(absint($request->get_param('limit')), 100);
+        $db    = DBSA_DB::instance();
+
+        $rows = $db->get_top_downloads($from, $to, $limit);
+
+        return new WP_REST_Response(array(
+            'period' => array('from' => $from, 'to' => $to),
+            'total'  => $db->get_downloads_total($from, $to),
+            'data'   => array_map(function($r) {
+                return array(
+                    'file_url'  => $r['file_url'],
+                    'file_name' => $r['file_name'],
+                    'downloads' => (int) $r['downloads'],
+                    'visitors'  => (int) $r['visitors'],
+                    'from_page' => $r['from_page'],
+                );
+            }, $rows),
+        ), 200);
+    }
+
+    public function get_events(WP_REST_Request $request): WP_REST_Response {
+        $from  = $request->get_param('from');
+        $to    = $request->get_param('to');
+        $limit = min(absint($request->get_param('limit')), 100);
+        $db    = DBSA_DB::instance();
+
+        return new WP_REST_Response(array(
+            'period'       => array('from' => $from, 'to' => $to),
+            'total'        => $db->get_events_total($from, $to),
+            'outbound'     => array_map(function($r) {
+                return array(
+                    'url'    => $r['url'],
+                    'clicks' => (int) $r['clicks'],
+                );
+            }, $db->get_outbound_links($from, $to, $limit)),
+            'scroll_depth' => array_map(function($r) {
+                return array(
+                    'depth' => $r['depth'],
+                    'users' => (int) $r['users'],
+                );
+            }, $db->get_scroll_depth_summary($from, $to)),
         ), 200);
     }
 

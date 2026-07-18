@@ -20,6 +20,7 @@ $comparison = $comparison ?? array(
     'prev_to'   => '',
 );
 $dl_total   = (int) ($dl_total ?? 0);
+$countries  = $countries  ?? array();
 
 // Helper: calcola variazione percentuale (cast esplicito — wpdb restituisce stringhe)
 function dbsa_pct_change($current, $prev) {
@@ -134,8 +135,9 @@ foreach ($devices as $d) {
                     <?php
                     $days = (int) ((strtotime($to) - strtotime($from)) / 86400) + 1;
                     printf(
+                        /* translators: %d: numero di giorni del periodo selezionato */
                         esc_html(_n('Pageview %d giorno', 'Pageview %d giorni', $days, 'db-site-analytics')),
-                        $days
+                        absint($days)
                     );
                     ?>
                 </div>
@@ -178,16 +180,16 @@ foreach ($devices as $d) {
                             </tr>
                         </thead>
                         <tbody>
-                        <?php foreach ($top_pages as $page) : ?>
+                        <?php foreach ($top_pages as $pg) : ?>
                             <tr>
                                 <td>
-                                    <a href="<?php echo esc_url($page['page_url']); ?>" target="_blank" rel="noopener noreferrer">
-                                        <?php echo esc_html($page['page_title'] ?: $page['page_url']); ?>
+                                    <a href="<?php echo esc_url($pg['page_url']); ?>" target="_blank" rel="noopener noreferrer">
+                                        <?php echo esc_html($pg['page_title'] ?: $pg['page_url']); ?>
                                         <span class="screen-reader-text"><?php esc_html_e('(si apre in una nuova finestra)', 'db-site-analytics'); ?></span>
                                     </a>
                                 </td>
-                                <td><?php echo esc_html(number_format_i18n($page['pageviews'])); ?></td>
-                                <td><?php echo esc_html(number_format_i18n($page['visitors'])); ?></td>
+                                <td><?php echo esc_html(number_format_i18n($pg['pageviews'])); ?></td>
+                                <td><?php echo esc_html(number_format_i18n($pg['visitors'])); ?></td>
                             </tr>
                         <?php endforeach; ?>
                         </tbody>
@@ -264,7 +266,8 @@ foreach ($devices as $d) {
             <span class="db-ui-badge db-ui-badge-muted dbsa-period-label">
                 <?php
                 printf(
-                    esc_html__('Periodo precedente: %s → %s', 'db-site-analytics'),
+                    /* translators: 1: data inizio periodo precedente, 2: data fine periodo precedente */
+                    esc_html__('Periodo precedente: %1$s → %2$s', 'db-site-analytics'),
                     esc_html($comparison['prev_from']),
                     esc_html($comparison['prev_to'])
                 );
@@ -289,23 +292,23 @@ foreach ($devices as $d) {
                         'prev'    => (int) $comparison['previous']['visitors'],
                     ),
                 );
-                foreach ($metrics as $m) :
-                    $pct   = dbsa_pct_change($m['current'], $m['prev']);
-                    $cls   = dbsa_pct_class($m['current'], $m['prev']);
+                foreach ($metrics as $metric) :
+                    $pct   = dbsa_pct_change($metric['current'], $metric['prev']);
+                    $cls   = dbsa_pct_class($metric['current'], $metric['prev']);
                 ?>
                 <div class="dbsa-comparison-item">
-                    <div class="dbsa-comparison-icon"><?php echo $m['icon']; ?></div>
+                    <div class="dbsa-comparison-icon"><?php echo esc_html($metric['icon']); ?></div>
                     <div class="dbsa-comparison-data">
-                        <div class="dbsa-comparison-label"><?php echo esc_html($m['label']); ?></div>
+                        <div class="dbsa-comparison-label"><?php echo esc_html($metric['label']); ?></div>
                         <div class="dbsa-comparison-row">
-                            <span class="dbsa-comparison-current"><?php echo esc_html(number_format_i18n($m['current'])); ?></span>
-                            <span class="dbsa-comparison-prev">vs <?php echo esc_html(number_format_i18n($m['prev'])); ?></span>
+                            <span class="dbsa-comparison-current"><?php echo esc_html(number_format_i18n($metric['current'])); ?></span>
+                            <span class="dbsa-comparison-prev">vs <?php echo esc_html(number_format_i18n($metric['prev'])); ?></span>
                             <span class="dbsa-comparison-pct <?php echo esc_attr($cls); ?>"><?php echo esc_html($pct); ?></span>
                         </div>
                         <?php
-                        $max = max($m['current'], $m['prev'], 1);
-                        $pct_bar_cur  = round(($m['current'] / $max) * 100);
-                        $pct_bar_prev = round(($m['prev'] / $max) * 100);
+                        $max = max($metric['current'], $metric['prev'], 1);
+                        $pct_bar_cur  = round(($metric['current'] / $max) * 100);
+                        $pct_bar_prev = round(($metric['prev'] / $max) * 100);
                         ?>
                         <div class="dbsa-mini-bars">
                             <div class="dbsa-mini-bar dbsa-mini-bar-current" style="width:<?php echo esc_attr($pct_bar_cur); ?>%"
@@ -367,6 +370,33 @@ foreach ($devices as $d) {
                         <span class="dbsa-bar-value"><?php echo esc_html(number_format_i18n($o['total'])); ?></span>
                     </div>
                 <?php endforeach; endif; ?>
+            </div>
+        </div>
+
+        <!-- Paesi (v3.2.0) -->
+        <div class="db-ui-card">
+            <div class="db-ui-card-header"><h3><?php esc_html_e('Paesi', 'db-site-analytics'); ?></h3></div>
+            <div class="db-ui-card-body">
+                <?php if (empty($countries)) : ?>
+                    <div class="db-ui-empty"><span class="db-ui-empty-icon">🌍</span><span class="db-ui-empty-text"><?php esc_html_e('Nessun dato. Abilita il GeoIP nelle impostazioni.', 'db-site-analytics'); ?></span></div>
+                <?php else :
+                    $max_co = max(array_map('intval', array_column($countries, 'total')));
+                    $max_co = max($max_co, 1);
+                    foreach ($countries as $c) :
+                        $pct = round(((int) $c['total'] / $max_co) * 100);
+                ?>
+                    <div class="dbsa-bar-row">
+                        <span class="dbsa-bar-label" title="<?php echo esc_attr($c['country']); ?>"><?php echo esc_html(DBSA_GeoIP::country_name($c['country'])); ?></span>
+                        <div class="db-ui-progress dbsa-inline-bar">
+                            <div class="db-ui-progress-fill" style="width:<?php echo esc_attr($pct); ?>%"></div>
+                        </div>
+                        <span class="dbsa-bar-value"><?php echo esc_html(number_format_i18n($c['total'])); ?></span>
+                    </div>
+                <?php endforeach; ?>
+                    <p class="description" style="margin:10px 0 0;font-size:11px;">
+                        <a href="https://db-ip.com" target="_blank" rel="noopener">IP Geolocation by DB-IP</a>
+                    </p>
+                <?php endif; ?>
             </div>
         </div>
 

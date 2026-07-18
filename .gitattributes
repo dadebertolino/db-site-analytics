@@ -1,0 +1,5 @@
+# File esclusi dallo ZIP di release (git archive)
+/.github        export-ignore
+/.gitattributes export-ignore
+/.gitignore     export-ignore
+/phpcs.xml.dist export-ignore

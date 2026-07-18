@@ -277,7 +277,8 @@
 
 .dbsa-grid-3 {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
+    /* v3.2.0: 4 card (Browser, OS, Paesi, Download) — layout 2x2 */
+    grid-template-columns: repeat(2, 1fr);
     gap: 16px;
     margin-top: 16px;
 }

@@ -67,7 +67,14 @@ class DBSA_Shortcodes {
             $page_url = home_url(add_query_arg(array(), $wp->request));
         }
 
-        $count = $this->get_view_count($page_url, $period, $type);
+        // v3.1.0 — Cache 10 min: evita una query COUNT a ogni render
+        $cache_key = 'dbsa_sc_' . md5($page_url . '|' . $period . '|' . $type);
+        $count     = get_transient($cache_key);
+        if (false === $count) {
+            $count = $this->get_view_count($page_url, $period, $type);
+            set_transient($cache_key, $count, 10 * MINUTE_IN_SECONDS);
+        }
+        $count = (int) $count;
 
         return $this->render_output($count, $type, $period, $format);
     }
@@ -142,9 +149,10 @@ class DBSA_Shortcodes {
         // format = full (default)
         if ($type === 'visitors') {
             $text = sprintf(
+                /* translators: 1: numero formattato, 2: giorni del periodo */
                 _n(
-                    '<strong>%s</strong> visitatore unico negli ultimi %d giorni',
-                    '<strong>%s</strong> visitatori unici negli ultimi %d giorni',
+                    '<strong>%1$s</strong> visitatore unico negli ultimi %2$d giorni',
+                    '<strong>%1$s</strong> visitatori unici negli ultimi %2$d giorni',
                     $count,
                     'db-site-analytics'
                 ),
@@ -153,9 +161,10 @@ class DBSA_Shortcodes {
             );
         } else {
             $text = sprintf(
+                /* translators: 1: numero formattato, 2: giorni del periodo */
                 _n(
-                    '<strong>%s</strong> visita negli ultimi %d giorni',
-                    '<strong>%s</strong> visite negli ultimi %d giorni',
+                    '<strong>%1$s</strong> visita negli ultimi %2$d giorni',
+                    '<strong>%1$s</strong> visite negli ultimi %2$d giorni',
                     $count,
                     'db-site-analytics'
                 ),

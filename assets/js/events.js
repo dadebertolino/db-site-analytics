@@ -15,9 +15,9 @@
     // Utility: invia evento via sendBeacon o XHR
     // -------------------------------------------------------------------------
     function sendEvent(type, data, pageUrl) {
+        // v3.1.0 — Niente nonce: compatibile con page caching
         var params = new URLSearchParams();
         params.append('action',     'dbsa_track_event');
-        params.append('nonce',      cfg.nonce);
         params.append('event_type', type);
         params.append('event_data', data);
         params.append('page_url',   pageUrl || window.location.href);
@@ -27,7 +27,8 @@
         } else {
             var xhr = new XMLHttpRequest();
             xhr.open('POST', cfg.ajax_url, true);
-            xhr.send(params);
+            xhr.setRequestHeader('Content-Type', 'application/x-www-form-urlencoded');
+            xhr.send(params.toString());
         }
     }
 

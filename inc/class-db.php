@@ -11,6 +11,12 @@ class DBSA_DB {
 
     private static $instance = null;
 
+    /** Versione schema: incrementare quando cambia la struttura delle tabelle. */
+    const SCHEMA_VERSION = '3';
+
+    /** Flag in-memory: tabelle verificate in questa richiesta. */
+    private static $tables_verified = false;
+
     public static function instance(): self {
         if (null === self::$instance) {
             self::$instance = new self();
@@ -68,10 +74,7 @@ class DBSA_DB {
     public function insert_pageview(array $data) {
         global $wpdb;
 
-        // Just-in-time: crea tabella se non esiste
-        if (!$this->table_exists()) {
-            $this->create_tables();
-        }
+        $this->ensure_tables();
 
         $inserted = $wpdb->insert(
             self::table_pageviews(),
@@ -83,7 +86,7 @@ class DBSA_DB {
                 'device_type'  => sanitize_key($data['device_type'] ?? 'desktop'),
                 'browser'      => substr(sanitize_text_field($data['browser'] ?? ''), 0, 50),
                 'os'           => substr(sanitize_text_field($data['os'] ?? ''), 0, 50),
-                'country'      => substr(sanitize_key($data['country'] ?? ''), 0, 2),
+                'country'      => strtoupper(substr(preg_replace('/[^A-Za-z]/', '', $data['country'] ?? ''), 0, 2)),
                 'is_bot'       => absint($data['is_bot'] ?? 0),
                 'created_at'   => current_time('mysql', true), // UTC
             ),
@@ -213,6 +216,25 @@ class DBSA_DB {
         return $wpdb->get_var("SHOW TABLES LIKE '{$table}'") === $table;
     }
 
+    /**
+     * v3.1.0 — Garantisce l'esistenza di tutte le tabelle SENZA eseguire
+     * SHOW TABLES a ogni insert: usa un flag in-memory + opzione versionata.
+     */
+    public function ensure_tables(): void {
+        if (self::$tables_verified) {
+            return;
+        }
+        if (get_option('dbsa_schema_version') === self::SCHEMA_VERSION) {
+            self::$tables_verified = true;
+            return;
+        }
+        $this->create_tables();
+        $this->create_downloads_table();
+        $this->create_events_table();
+        update_option('dbsa_schema_version', self::SCHEMA_VERSION, false);
+        self::$tables_verified = true;
+    }
+
     // =========================================================================
     // FASE 2 — Tabella Downloads
     // =========================================================================
@@ -256,9 +278,7 @@ class DBSA_DB {
     public function insert_download(array $data) {
         global $wpdb;
 
-        if (!$this->downloads_table_exists()) {
-            $this->create_downloads_table();
-        }
+        $this->ensure_tables();
 
         $inserted = $wpdb->insert(
             self::table_downloads(),
@@ -335,6 +355,27 @@ class DBSA_DB {
              LIMIT 8",
             $from . ' 00:00:00',
             $to . ' 23:59:59'
+        ), ARRAY_A);
+    }
+
+    /**
+     * Breakdown paesi (v3.2.0). Richiede GeoIP attivo per avere dati.
+     */
+    public function get_country_breakdown(string $from, string $to, int $limit = 10): array {
+        global $wpdb;
+        $table = self::table_pageviews();
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT country, COUNT(*) AS total
+             FROM {$table}
+             WHERE is_bot = 0 AND country != ''
+               AND created_at BETWEEN %s AND %s
+             GROUP BY country
+             ORDER BY total DESC
+             LIMIT %d",
+            $from . ' 00:00:00',
+            $to . ' 23:59:59',
+            $limit
         ), ARRAY_A);
     }
 
@@ -418,8 +459,7 @@ class DBSA_DB {
      * Manutenzione giornaliera: pulisce anche i download.
      */
     public function daily_maintenance(): void {
-        global $wpdb;
-
+        // Ruota il salt giornaliero
         update_option('dbsa_daily_salt', wp_generate_password(32, true, true));
         update_option('dbsa_salt_date',  gmdate('Y-m-d'));
 
@@ -427,21 +467,32 @@ class DBSA_DB {
         $retention_days = absint($settings['retention_days'] ?? 90);
 
         if ($retention_days > 0) {
-            $interval = intval($retention_days);
-            $wpdb->query(
-                "DELETE FROM " . self::table_pageviews() . " WHERE created_at < DATE_SUB(NOW(), INTERVAL {$interval} DAY)"
-            );
+            // v3.1.0 — UTC_TIMESTAMP (created_at e' salvato in UTC, NOW() usa
+            // il timezone del server MySQL) + delete a batch per evitare lock
+            // prolungati su tabelle grandi.
+            $this->batch_delete_old(self::table_pageviews(), $retention_days);
             if ($this->downloads_table_exists()) {
-                $wpdb->query(
-                    "DELETE FROM " . self::table_downloads() . " WHERE created_at < DATE_SUB(NOW(), INTERVAL {$interval} DAY)"
-                );
+                $this->batch_delete_old(self::table_downloads(), $retention_days);
             }
             if ($this->events_table_exists()) {
-                $wpdb->query(
-                    "DELETE FROM " . self::table_events() . " WHERE created_at < DATE_SUB(NOW(), INTERVAL {$interval} DAY)"
-                );
+                $this->batch_delete_old(self::table_events(), $retention_days);
             }
         }
+    }
+
+    /**
+     * Elimina a blocchi da 5000 le righe piu' vecchie di N giorni.
+     */
+    private function batch_delete_old(string $table, int $days): void {
+        global $wpdb;
+        $days = intval($days);
+        do {
+            $deleted = $wpdb->query(
+                "DELETE FROM {$table}
+                 WHERE created_at < DATE_SUB(UTC_TIMESTAMP(), INTERVAL {$days} DAY)
+                 LIMIT 5000"
+            );
+        } while ($deleted === 5000);
     }
 
     private function downloads_table_exists(): bool {
@@ -484,9 +535,7 @@ class DBSA_DB {
     public function insert_event(array $data) {
         global $wpdb;
 
-        if (!$this->events_table_exists()) {
-            $this->create_events_table();
-        }
+        $this->ensure_tables();
 
         $inserted = $wpdb->insert(
             self::table_events(),
