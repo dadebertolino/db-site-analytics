@@ -1,0 +1,64 @@
+name: Release
+
+# Al push di un tag v* builda lo ZIP del plugin e lo allega alla Release.
+# L'asset .zip è necessario: DB_GitHub_Updater preferisce il primo asset .zip
+# della release; senza asset ricadrebbe sullo zipball GitHub, che ha la
+# cartella top-level sbagliata (repo-hash) e directory di sviluppo incluse.
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Build & Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP 7.4 (versione minima supportata)
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '7.4'
+          coverage: none
+
+      - name: Lint (gate pre-release)
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r file; do
+            php -l "$file" > /dev/null || fail=1
+          done < <(find . -name '*.php' -not -path './.git/*')
+          exit $fail
+
+      - name: Verify version matches tag
+        run: |
+          TAG_VERSION="${GITHUB_REF_NAME#v}"
+          FILE_VERSION=$(grep -oP "define\('DBSA_VERSION',\s*'\K[0-9.]+" db-site-analytics.php)
+          STABLE_TAG=$(grep -oP "^Stable tag:\s*\K[0-9.]+" readme.txt)
+          echo "Tag: $TAG_VERSION — Plugin: $FILE_VERSION — Stable tag: $STABLE_TAG"
+          if [ "$TAG_VERSION" != "$FILE_VERSION" ] || [ "$TAG_VERSION" != "$STABLE_TAG" ]; then
+            echo "::error::Versioni non allineate: tag=$TAG_VERSION, DBSA_VERSION=$FILE_VERSION, readme.txt=$STABLE_TAG"
+            exit 1
+          fi
+
+      - name: Build plugin ZIP
+        # git archive rispetta gli export-ignore in .gitattributes:
+        # .github, phpcs.xml.dist e dotfiles restano fuori dallo ZIP
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          git archive --format=zip --prefix=db-site-analytics/ \
+            -o "/tmp/db-site-analytics-${VERSION}.zip" "$GITHUB_REF_NAME"
+          echo "ZIP_PATH=/tmp/db-site-analytics-${VERSION}.zip" >> "$GITHUB_ENV"
+          unzip -l "/tmp/db-site-analytics-${VERSION}.zip" | head -10
+
+      - name: Create Release with asset
+        uses: softprops/action-gh-release@v2
+        with:
+          files: ${{ env.ZIP_PATH }}
+          generate_release_notes: true
+          draft: false

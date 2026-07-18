@@ -1,0 +1,61 @@
+name: CI
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+
+  lint:
+    name: PHP Lint ${{ matrix.php }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        php: [ '7.4', '8.3' ]
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP ${{ matrix.php }}
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: none
+          tools: none
+
+      - name: Lint all PHP files
+        run: |
+          set -e
+          fail=0
+          while IFS= read -r file; do
+            php -l "$file" > /dev/null || fail=1
+          done < <(find . -name '*.php' -not -path './.git/*' -not -path './vendor/*')
+          exit $fail
+
+  phpcs:
+    name: PHPCS (WordPress Coding Standards)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup PHP
+        uses: shivammathur/setup-php@v2
+        with:
+          php-version: '8.3'
+          coverage: none
+          tools: cs2pr
+
+      # PHPCS + WPCS installati da GitHub Releases/repo, senza Composer,
+      # con versioni bloccate (le stesse validate in locale)
+      - name: Install PHPCS + WPCS
+        run: |
+          curl -sL -o /tmp/phpcs.phar https://github.com/PHPCSStandards/PHP_CodeSniffer/releases/download/3.13.2/phpcs.phar
+          git clone -q --depth 1 --branch 3.1.0 https://github.com/WordPress/WordPress-Coding-Standards.git /tmp/wpcs
+          git clone -q --depth 1 --branch 1.0.12 https://github.com/PHPCSStandards/PHPCSUtils.git /tmp/phpcsutils
+          git clone -q --depth 1 --branch 1.2.1 https://github.com/PHPCSStandards/PHPCSExtra.git /tmp/phpcsextra
+          php /tmp/phpcs.phar --config-set installed_paths /tmp/wpcs,/tmp/phpcsutils,/tmp/phpcsextra
+
+      - name: Run PHPCS
+        run: php /tmp/phpcs.phar --standard=phpcs.xml.dist --report=checkstyle | cs2pr
