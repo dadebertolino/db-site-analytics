@@ -65,5 +65,5 @@ jobs:
           status=0
           php /tmp/phpcs.phar --standard=phpcs.xml.dist -q \
             --report-checkstyle=/tmp/checkstyle.xml || status=$?
-          cs2pr /tmp/checkstyle.xml
+          cs2pr --graceful-warnings /tmp/checkstyle.xml
           exit $status
