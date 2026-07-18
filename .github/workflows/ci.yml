@@ -58,4 +58,12 @@ jobs:
           php /tmp/phpcs.phar --config-set installed_paths /tmp/wpcs,/tmp/phpcsutils,/tmp/phpcsextra
 
       - name: Run PHPCS
-        run: php /tmp/phpcs.phar --standard=phpcs.xml.dist --report=checkstyle | cs2pr
+        # -q sopprime progresso e note (inquinerebbero l'XML);
+        # report su file: l'exit code di phpcs riflette solo gli errori
+        # (ignore_warnings_on_exit=1 nel ruleset), cs2pr annota la PR
+        run: |
+          status=0
+          php /tmp/phpcs.phar --standard=phpcs.xml.dist -q \
+            --report-checkstyle=/tmp/checkstyle.xml || status=$?
+          cs2pr /tmp/checkstyle.xml
+          exit $status
