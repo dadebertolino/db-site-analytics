@@ -26,7 +26,6 @@ class DBSA_Admin {
         add_action('admin_init',            array($this, 'handle_cleanup'));
         // Schema aggiornato anche se non arriva ancora traffico dopo un update
         add_action('admin_init',            array(DBSA_DB::instance(), 'ensure_tables'));
-        add_action('wp_ajax_dbsa_get_stats', array($this, 'ajax_get_stats'));
         add_action('wp_dashboard_setup',    array($this, 'register_dashboard_widget'));
     }
 
@@ -113,11 +112,13 @@ class DBSA_Admin {
             DBSA_VERSION
         );
 
-        // Chart.js solo nella dashboard principale
+        // Chart.js solo nella dashboard principale. v3.3.0: incluso nel plugin,
+        // nessuna richiesta a CDN esterne. I dati arrivano dal template
+        // (wp_add_inline_script prima di admin.js).
         if ($hook === 'toplevel_page_dbsa-dashboard') {
             wp_enqueue_script(
-                'chartjs',
-                'https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js',
+                'dbsa-chartjs',
+                DBSA_PLUGIN_URL . 'assets/js/vendor/chart.umd.min.js',
                 array(),
                 '4.4.0',
                 true
@@ -125,18 +126,10 @@ class DBSA_Admin {
             wp_enqueue_script(
                 'dbsa-admin',
                 DBSA_PLUGIN_URL . 'assets/js/admin.js',
-                array('chartjs'),
+                array('dbsa-chartjs'),
                 DBSA_VERSION,
                 true
             );
-            wp_localize_script('dbsa-admin', 'dbsa', array(
-                'ajax_url' => admin_url('admin-ajax.php'),
-                'nonce'    => wp_create_nonce('dbsa_nonce'),
-                'i18n'     => array(
-                    'pageviews' => __('Pageview', 'db-site-analytics'),
-                    'visitors'  => __('Visitatori unici', 'db-site-analytics'),
-                ),
-            ));
         }
     }
 
@@ -150,29 +143,27 @@ class DBSA_Admin {
         }
 
         // Intervallo date (default: ultimi 30gg)
-        $to   = gmdate('Y-m-d');
-        $from = gmdate('Y-m-d', strtotime('-29 days'));
-
-        if (!empty($_GET['from']) && !empty($_GET['to'])) {
-            $from = sanitize_text_field(wp_unslash($_GET['from']));
-            $to   = sanitize_text_field(wp_unslash($_GET['to']));
-        }
+        list($from, $to) = self::get_date_range(
+            sanitize_text_field(wp_unslash($_GET['from'] ?? '')),
+            sanitize_text_field(wp_unslash($_GET['to'] ?? ''))
+        );
 
         $data = $this->cached('dash_' . $from . '_' . $to, 2 * MINUTE_IN_SECONDS, function () use ($from, $to) {
-            $db        = DBSA_DB::instance();
-            $today     = gmdate('Y-m-d');
-            $week_from = gmdate('Y-m-d', strtotime('-6 days'));
+            $db         = DBSA_DB::instance();
+            $today      = current_time('Y-m-d');
+            $week_from  = gmdate('Y-m-d', strtotime($today . ' -6 days'));
+            $comparison = $db->get_period_comparison($from, $to);
             return array(
                 'stats_today'   => $db->get_stats($today, $today),
                 'stats_7d'      => $db->get_stats($week_from, $today),
-                'stats_30d'     => $db->get_stats($from, $to),
+                'stats_30d'     => $comparison['current'], // stessa query, non ripeterla
                 'top_pages'     => $db->get_top_pages($from, $to, 10),
                 'top_referrers' => $db->get_top_referrers($from, $to, 10),
                 'daily_views'   => $db->get_daily_views($from, $to),
                 'devices'       => $db->get_device_breakdown($from, $to),
                 'browsers'      => $db->get_browser_breakdown($from, $to),
                 'os_list'       => $db->get_os_breakdown($from, $to),
-                'comparison'    => $db->get_period_comparison($from, $to),
+                'comparison'    => $comparison,
                 'dl_total'      => $db->get_downloads_total($from, $to),
                 'countries'     => $db->get_country_breakdown($from, $to),
             );
@@ -191,13 +182,10 @@ class DBSA_Admin {
             wp_die(esc_html__('Permesso negato.', 'db-site-analytics'));
         }
 
-        $to   = gmdate('Y-m-d');
-        $from = gmdate('Y-m-d', strtotime('-29 days'));
-
-        if (!empty($_GET['from']) && !empty($_GET['to'])) {
-            $from = sanitize_text_field(wp_unslash($_GET['from']));
-            $to   = sanitize_text_field(wp_unslash($_GET['to']));
-        }
+        list($from, $to) = self::get_date_range(
+            sanitize_text_field(wp_unslash($_GET['from'] ?? '')),
+            sanitize_text_field(wp_unslash($_GET['to'] ?? ''))
+        );
 
         $data = $this->cached('dl_' . $from . '_' . $to, 2 * MINUTE_IN_SECONDS, function () use ($from, $to) {
             $db = DBSA_DB::instance();
@@ -220,13 +208,10 @@ class DBSA_Admin {
             wp_die(esc_html__('Permesso negato.', 'db-site-analytics'));
         }
 
-        $to   = gmdate('Y-m-d');
-        $from = gmdate('Y-m-d', strtotime('-29 days'));
-
-        if (!empty($_GET['from']) && !empty($_GET['to'])) {
-            $from = sanitize_text_field(wp_unslash($_GET['from']));
-            $to   = sanitize_text_field(wp_unslash($_GET['to']));
-        }
+        list($from, $to) = self::get_date_range(
+            sanitize_text_field(wp_unslash($_GET['from'] ?? '')),
+            sanitize_text_field(wp_unslash($_GET['to'] ?? ''))
+        );
 
         $data = $this->cached('ev_' . $from . '_' . $to, 2 * MINUTE_IN_SECONDS, function () use ($from, $to) {
             $db = DBSA_DB::instance();
@@ -245,37 +230,55 @@ class DBSA_Admin {
     }
 
     // -------------------------------------------------------------------------
-    // AJAX: dati per chart JS (ricarica con filtro date)
+    // Helper condivisi (v3.3.0)
     // -------------------------------------------------------------------------
 
-    public function ajax_get_stats(): void {
-        check_ajax_referer('dbsa_nonce', 'nonce');
+    /**
+     * Intervallo date validato, in giorni locali del sito: formato Y-m-d,
+     * niente date future né precedenti al 2000, from <= to.
+     * Default (date assenti o non valide): ultimi 30 giorni.
+     *
+     * @return string[] array(from, to)
+     */
+    public static function get_date_range(string $from, string $to): array {
+        $today = current_time('Y-m-d');
+        $from  = self::valid_date($from);
+        $to    = self::valid_date($to);
 
-        if (!current_user_can('manage_options')) {
-            wp_send_json_error('Permesso negato.', 403);
+        if ('' === $from || '' === $to) {
+            return array(gmdate('Y-m-d', strtotime($today . ' -29 days')), $today);
         }
 
-        $from = sanitize_text_field(wp_unslash($_POST['from'] ?? gmdate('Y-m-d', strtotime('-29 days'))));
-        $to   = sanitize_text_field(wp_unslash($_POST['to']   ?? gmdate('Y-m-d')));
+        $from = min($from, $today);
+        $to   = min($to, $today);
 
-        $data = $this->cached('ajax_' . $from . '_' . $to, 2 * MINUTE_IN_SECONDS, function () use ($from, $to) {
-            $db = DBSA_DB::instance();
-            return array(
-            'daily_views' => $db->get_daily_views($from, $to),
-            'stats'       => $db->get_stats($from, $to),
-            'top_pages'   => $db->get_top_pages($from, $to, 10),
-            'referrers'   => $db->get_top_referrers($from, $to, 10),
-            'devices'     => $db->get_device_breakdown($from, $to),
-            'browsers'    => $db->get_browser_breakdown($from, $to),
-            'os_list'     => $db->get_os_breakdown($from, $to),
-            'comparison'  => $db->get_period_comparison($from, $to),
-            'dl_total'    => $db->get_downloads_total($from, $to),
-            'ev_total'    => $db->get_events_total($from, $to),
-            'countries'   => $db->get_country_breakdown($from, $to),
-            );
-        });
+        return $from <= $to ? array($from, $to) : array($to, $from);
+    }
 
-        wp_send_json_success($data);
+    private static function valid_date(string $value): string {
+        $date = DateTime::createFromFormat('!Y-m-d', $value);
+        return ($date && $date->format('Y-m-d') === $value && $value >= '2000-01-01') ? $value : '';
+    }
+
+    /**
+     * Variazione percentuale formattata (cast esplicito: wpdb restituisce stringhe).
+     */
+    public static function pct_change($current, $prev): string {
+        $current = (int) $current;
+        $prev    = (int) $prev;
+        if ($prev === 0) return $current > 0 ? '+100%' : '—';
+        $pct = round((($current - $prev) / $prev) * 100, 1);
+        return ($pct >= 0 ? '+' : '') . $pct . '%';
+    }
+
+    /**
+     * Classe CSS del trend (su/giù) per il confronto periodi.
+     */
+    public static function pct_class($current, $prev): string {
+        $current = (int) $current;
+        $prev    = (int) $prev;
+        if ($prev === 0) return '';
+        return $current >= $prev ? 'dbsa-trend-up' : 'dbsa-trend-down';
     }
 
     // -------------------------------------------------------------------------
@@ -397,14 +400,14 @@ class DBSA_Admin {
     }
 
     public function render_dashboard_widget(): void {
-        $data = $this->cached('widget_' . gmdate('Y-m-d'), 5 * MINUTE_IN_SECONDS, function () {
-            $db    = DBSA_DB::instance();
-            $today = gmdate('Y-m-d');
-            $yday  = gmdate('Y-m-d', strtotime('-1 day'));
+        $today = current_time('Y-m-d');
+        $data  = $this->cached('widget_' . $today, 5 * MINUTE_IN_SECONDS, function () use ($today) {
+            $db   = DBSA_DB::instance();
+            $yday = gmdate('Y-m-d', strtotime($today . ' -1 day'));
             return array(
                 'stats_today'     => $db->get_stats($today, $today),
                 'stats_yesterday' => $db->get_stats($yday, $yday),
-                'stats_7d'        => $db->get_stats(gmdate('Y-m-d', strtotime('-6 days')), $today),
+                'stats_7d'        => $db->get_stats(gmdate('Y-m-d', strtotime($today . ' -6 days')), $today),
                 'top'             => $db->get_top_pages($today, $today, 1),
             );
         });

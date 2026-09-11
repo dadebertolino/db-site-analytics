@@ -2,19 +2,24 @@
 
 **Server-side WordPress visit tracking — no cookies, no external services, no tracking scripts.**
 
-All data stays in your WordPress database. GDPR compliant by design.
+All data stays in your WordPress database. Privacy by design.
 
 ---
 
 ## Features
 
 ### Tracking
-- **Server-side** via `template_redirect` hook — no scripts injected in the frontend, no performance impact, invisible to ad-blockers
-- **No IP address stored** — daily anonymous non-reversible visitor hash (SHA-256 + daily rotating salt)
+- **Server-side** via `template_redirect` hook — no tracking script for pageviews, invisible to ad-blockers
+- **Only real pages** — 404s (scanners probing `.env`, `up.php`…), HEAD requests, browser prefetch/prerender, favicon and previews are ignored
+- **No IP address stored** — daily visitor hash (SHA-256 + salt rotated at local midnight)
 - **No cookies** of any kind
-- **Bot/crawler filter** — 30+ User-Agent patterns detected automatically
+- **Bot/crawler filter** — requests without User-Agent, crawlers, headless browsers and HTTP libraries; extensible via the `dbsa_bot_patterns` filter
+- **Normalised referrers** — aggregated by host; internal navigation is not a referral
+- **Site timezone** — days, chart and filters follow the WordPress timezone (DST-aware)
 - Lightweight User-Agent parsing for device, browser and OS (no external library)
-- Configurable exclusions for user roles, URL paths and logged-in users
+- Configurable exclusions for site staff, user roles, URL paths and logged-in users
+
+> With full-page caching (WP Super Cache, LiteSpeed Cache, Cloudflare APO…) pages served from cache don't run PHP and are not counted.
 
 ### Dashboard
 - Visit chart (pageviews + unique visitors) with custom date filter
@@ -35,6 +40,14 @@ All data stays in your WordPress database. GDPR compliant by design.
 - **Scroll depth** — thresholds at 25%, 50%, 75%, 100%
 - Dedicated admin page with outbound link table and scroll depth bars
 - CSV export for events
+
+### Internal search & share previews *(server-side, no JS)*
+- **Internal searches** recorded as a separate report, not as pages — empty or >100-character queries discarded, max 10 searches/min per IP
+- **Share previews** — requests from Facebook, WhatsApp, Telegram, X, LinkedIn, Slack, Discord… generating a link preview are excluded from visits and counted separately, to estimate how often a page is shared
+
+### History cleanup
+- Settings card that previews past noise (404/scanner paths, untitled pages, searches recorded as pages) with row counts and top values
+- Rows are flagged, not deleted: statistics exclude them and they can be restored at any time
 
 ### Country geolocation (GeoIP) *(v3.2.0)*
 - Self-contained: free **DB-IP Country Lite** database (MMDB) downloaded locally into `wp-content/uploads/dbsa-geoip/` — no registration, no API key, no external service at runtime
@@ -68,14 +81,15 @@ GET /wp-json/dbsa/v1/stats/events
 
 ## Privacy & GDPR
 
-This plugin **does not require consent** under GDPR/ePrivacy because:
+The plugin is designed to minimise personal data:
 
-- ❌ No IP addresses collected (never stored, not even anonymised)
-- ❌ No cookies of any kind
-- ❌ No data sent to third-party services
-- ❌ No cross-session user profiling
+- No IP addresses stored — the IP is only used in memory (visitor hash, optional GeoIP lookup)
+- No cookies and nothing stored on the visitor's device
+- No data sent to third-party services (except the monthly GeoIP database download, if enabled)
+- No cross-day profiling: the salt rotates at local midnight and the previous one is deleted
+- External referrers stored without query string
 
-The `visitor_hash` is an anonymous daily counter: `SHA256(IP + UA + daily_salt)`. The salt rotates every night — after 24h the hash cannot be linked to any visitor.
+The `visitor_hash` is `SHA256(IP + UA + daily_salt)`. While the day's salt exists the hash is **pseudonymous**, not anonymous; once the salt rotates it can no longer be linked to a visitor. A consent banner is generally not required because no cookies or device storage are used, but the processing should still be described in your privacy policy. If internal search tracking is enabled, search terms may contain personal data.
 
 ---
 
@@ -119,14 +133,39 @@ db-site-analytics/
 │   ├── admin.css
 │   └── frontend.css
 ├── assets/js/
+│   ├── admin.js
 │   ├── downloader.js
-│   └── events.js
+│   ├── events.js
+│   └── vendor/chart.umd.min.js   (Chart.js 4.4.0, MIT)
 └── uninstall.php
 ```
 
 ---
 
 ## Changelog
+
+### 3.3.0
+- Accuracy: 404s (scanners probing `.env`, `up.php`, `wp-login`…), HEAD requests, browser prefetch/prerender, favicon, previews and embeds are no longer counted
+- Accuracy: revised bot filter (requests without User-Agent, HeadlessChrome, okhttp, Bytespider, PetalBot…), extensible via the `dbsa_bot_patterns` filter
+- Accuracy: referrers normalised by host (no `www`); internal navigation is no longer a referral. New `referrer_host` column, history backfilled in the background
+- Accuracy: days, chart and filters follow the site timezone (previously UTC), DST-aware; the visitor salt rotates at local midnight and no longer twice a day
+- New: "Exclude site staff" — visits from users who can edit content are not recorded (the old "Exclude administrators" option was never applied)
+- New: internal searches tracked as a separate event (no longer as pages), capped at 10 searches/min per IP
+- New: share-preview counter (Facebook, WhatsApp, Telegram, X, LinkedIn…) to estimate how often a page is shared
+- New: history cleanup in settings — hides past noise from statistics without deleting data, with restore
+- New: `searches` and `share_previews` in the `/stats/events` REST endpoint
+- Privacy: external referrers stored without query string; past days' salt locks (which kept a copy of the salt) are deleted; privacy wording corrected (the hash is pseudonymous during the day)
+- Performance: Chart.js bundled (no CDN request), shortcode CSS loaded only where used, duplicate dashboard query removed
+- Fix: `[dbsa_views]` without attributes caused a fatal error on WordPress ≤ 6.4
+- Fix: iPhone and iPad detected as macOS
+- Fix: relative download links and protocol-relative outbound links were not tracked
+- Fix: with plain permalinks every visit was recorded as the homepage
+- Fix: invalid dates accepted in dashboard and export filters
+- Fix: the auto-updater re-activated the plugin even when it was inactive
+- Fix: temporary file left behind when the GeoIP download failed
+- Removed: unused `dbsa_get_stats` AJAX endpoint
+- API: in `/stats/referrers` the `referrer` field now contains the normalised host
+- CSV export: dates in the site timezone and new "Host Referrer" column
 
 ### 3.2.0
 - New: self-contained country geolocation (GeoIP) — free DB-IP Country Lite database downloaded locally; no registration, no external service at runtime

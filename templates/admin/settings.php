@@ -279,8 +279,9 @@ $retention_opts = array(30, 60, 90, 180, 365);
                 <div class="db-ui-alert db-ui-alert-info">
                     <span class="db-ui-alert-icon">ℹ️</span>
                     <div>
-                        <strong><?php esc_html_e('Questo plugin non raccoglie dati personali.', 'db-site-analytics'); ?></strong><br>
-                        <?php esc_html_e('Non vengono salvati indirizzi IP, cookie di tracciamento o identificatori persistenti. Il visitor_hash è un contatore giornaliero anonimo non reversibile. Nessun consenso è richiesto ai sensi del GDPR/Regolamento ePrivacy.', 'db-site-analytics'); ?>
+                        <strong><?php esc_html_e('Il plugin è progettato per ridurre al minimo i dati personali.', 'db-site-analytics'); ?></strong><br>
+                        <?php esc_html_e('Non salva indirizzi IP, non usa cookie, non memorizza nulla sul dispositivo del visitatore e non invia dati a terze parti. Il visitor_hash deriva da IP e User-Agent con un salt che cambia ogni giorno e poi viene eliminato: dopo la rotazione l\'hash non è più ricollegabile a un visitatore, ma durante la giornata è un dato pseudonimo, non anonimo.', 'db-site-analytics'); ?><br>
+                        <?php esc_html_e('In genere non serve un banner di consenso, ma il trattamento va descritto nell\'informativa privacy. Se tracci le ricerche interne, ricorda che i termini cercati possono contenere dati personali.', 'db-site-analytics'); ?>
                     </div>
                 </div>
             </div>

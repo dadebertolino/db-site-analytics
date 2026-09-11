@@ -47,6 +47,66 @@ class DBSA_DB {
         return $wpdb->prefix . 'dbsa_pageviews';
     }
 
+    // =========================================================================
+    // v3.3.0 — Giorni nel fuso orario del sito
+    // created_at è salvato in UTC; le date Y-m-d ricevute da dashboard, REST,
+    // export e shortcode sono giorni locali e vengono convertite in confini UTC.
+    // =========================================================================
+
+    /**
+     * Inizio (00:00:00) del giorno locale, espresso in UTC.
+     */
+    public static function utc_start(string $date): string {
+        return self::local_midnight($date)
+            ->setTimezone(new DateTimeZone('UTC'))
+            ->format('Y-m-d H:i:s');
+    }
+
+    /**
+     * Fine (23:59:59) del giorno locale, espressa in UTC. Con l'ora legale
+     * un giorno può durare 23 o 25 ore: il calcolo segue il calendario locale.
+     */
+    public static function utc_end(string $date): string {
+        return self::local_midnight($date)
+            ->modify('+1 day -1 second')
+            ->setTimezone(new DateTimeZone('UTC'))
+            ->format('Y-m-d H:i:s');
+    }
+
+    private static function local_midnight(string $date): DateTimeImmutable {
+        $day = DateTimeImmutable::createFromFormat('!Y-m-d', $date, wp_timezone());
+        return $day ?: new DateTimeImmutable('today', wp_timezone());
+    }
+
+    /**
+     * Espressione SQL con la data locale di created_at. Se nell'intervallo
+     * cambia l'ora legale, l'offset viene scelto con un CASE sulle transizioni
+     * (non richiede le tabelle timezone di MySQL).
+     */
+    private static function local_date_sql(string $from, string $to): string {
+        $tz    = wp_timezone();
+        $begin = self::local_midnight($from)->getTimestamp();
+        $end   = self::local_midnight($to)->modify('+1 day')->getTimestamp();
+
+        // false per i fusi a offset fisso (es. "UTC+2" nelle impostazioni)
+        $transitions = $tz->getTransitions($begin, $end);
+
+        if (empty($transitions) || count($transitions) === 1) {
+            $offset = $tz->getOffset(new DateTimeImmutable('@' . $begin));
+            return 'DATE(DATE_ADD(created_at, INTERVAL ' . (int) $offset . ' SECOND))';
+        }
+
+        $count = count($transitions);
+        $case  = 'CASE';
+        for ($i = 1; $i < $count; $i++) {
+            $case .= " WHEN created_at < '" . gmdate('Y-m-d H:i:s', (int) $transitions[$i]['ts']) . "'"
+                . ' THEN ' . (int) $transitions[$i - 1]['offset'];
+        }
+        $case .= ' ELSE ' . (int) $transitions[$count - 1]['offset'] . ' END';
+
+        return "DATE(DATE_ADD(created_at, INTERVAL ({$case}) SECOND))";
+    }
+
     /**
      * Crea/aggiorna tabella con dbDelta.
      */
@@ -123,32 +183,33 @@ class DBSA_DB {
              FROM {$table}
              WHERE is_bot = 0
                AND created_at BETWEEN %s AND %s",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
 
         return $totals ?? array('pageviews' => 0, 'visitors' => 0);
     }
 
     /**
-     * Visite giornaliere in un intervallo (per grafico).
+     * Visite giornaliere in un intervallo (per grafico), per giorno locale del sito.
      */
     public function get_daily_views(string $from, string $to): array {
         global $wpdb;
         $table = self::table_pageviews();
+        $day   = self::local_date_sql($from, $to);
 
         return $wpdb->get_results($wpdb->prepare(
             "SELECT
-                DATE(created_at) AS day,
+                {$day} AS day,
                 COUNT(*) AS pageviews,
                 COUNT(DISTINCT visitor_hash) AS visitors
              FROM {$table}
              WHERE is_bot = 0
                AND created_at BETWEEN %s AND %s
-             GROUP BY DATE(created_at)
+             GROUP BY day
              ORDER BY day ASC",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -171,8 +232,8 @@ class DBSA_DB {
              GROUP BY page_url
              ORDER BY pageviews DESC
              LIMIT %d",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59',
+            self::utc_start($from),
+            self::utc_end($to),
             $limit
         ), ARRAY_A);
     }
@@ -195,8 +256,8 @@ class DBSA_DB {
              GROUP BY referrer_host
              ORDER BY pageviews DESC
              LIMIT %d",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59',
+            self::utc_start($from),
+            self::utc_end($to),
             $limit
         ), ARRAY_A);
     }
@@ -214,8 +275,8 @@ class DBSA_DB {
              WHERE is_bot = 0
                AND created_at BETWEEN %s AND %s
              GROUP BY device_type",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -337,8 +398,8 @@ class DBSA_DB {
              GROUP BY file_url
              ORDER BY downloads DESC
              LIMIT %d",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59',
+            self::utc_start($from),
+            self::utc_end($to),
             $limit
         ), ARRAY_A);
     }
@@ -352,8 +413,8 @@ class DBSA_DB {
 
         return (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$table} WHERE created_at BETWEEN %s AND %s",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ));
     }
 
@@ -376,8 +437,8 @@ class DBSA_DB {
              GROUP BY browser
              ORDER BY total DESC
              LIMIT 8",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -396,8 +457,8 @@ class DBSA_DB {
              GROUP BY country
              ORDER BY total DESC
              LIMIT %d",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59',
+            self::utc_start($from),
+            self::utc_end($to),
             $limit
         ), ARRAY_A);
     }
@@ -417,8 +478,8 @@ class DBSA_DB {
              GROUP BY os
              ORDER BY total DESC
              LIMIT 8",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -455,8 +516,8 @@ class DBSA_DB {
                AND created_at BETWEEN %s AND %s
              ORDER BY created_at DESC
              LIMIT 50000",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -473,8 +534,8 @@ class DBSA_DB {
              WHERE created_at BETWEEN %s AND %s
              ORDER BY created_at DESC
              LIMIT 50000",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -482,9 +543,10 @@ class DBSA_DB {
      * Manutenzione giornaliera: pulisce anche i download.
      */
     public function daily_maintenance(): void {
-        // Ruota il salt giornaliero
-        update_option('dbsa_daily_salt', wp_generate_password(32, true, true));
-        update_option('dbsa_salt_date',  gmdate('Y-m-d'));
+        // v3.3.0 — Il salt non viene più ruotato qui: lo fa DBSA_Visitor al primo
+        // hit del nuovo giorno locale. Ruotarlo anche nel cron lo cambiava a metà
+        // giornata e contava due volte gli stessi visitatori.
+        DBSA_Visitor::purge_old_salt_locks();
 
         $settings       = get_option('dbsa_settings', array());
         $retention_days = absint($settings['retention_days'] ?? 90);
@@ -584,16 +646,16 @@ class DBSA_DB {
                 "SELECT COUNT(*) FROM {$table}
                  WHERE event_type = %s AND created_at BETWEEN %s AND %s",
                 $event_type,
-                $from . ' 00:00:00',
-                $to . ' 23:59:59'
+                self::utc_start($from),
+                self::utc_end($to)
             ));
         }
 
         return (int) $wpdb->get_var($wpdb->prepare(
             "SELECT COUNT(*) FROM {$table}
              WHERE created_at BETWEEN %s AND %s",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ));
     }
 
@@ -607,8 +669,8 @@ class DBSA_DB {
              WHERE created_at BETWEEN %s AND %s
              GROUP BY event_type, event_data
              ORDER BY event_type, total DESC",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -624,8 +686,8 @@ class DBSA_DB {
              GROUP BY event_data
              ORDER BY clicks DESC
              LIMIT %d",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59',
+            self::utc_start($from),
+            self::utc_end($to),
             $limit
         ), ARRAY_A);
     }
@@ -641,8 +703,8 @@ class DBSA_DB {
                AND created_at BETWEEN %s AND %s
              GROUP BY event_data
              ORDER BY CAST(event_data AS UNSIGNED) ASC",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -656,8 +718,8 @@ class DBSA_DB {
              WHERE created_at BETWEEN %s AND %s
              ORDER BY created_at DESC
              LIMIT 50000",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -676,8 +738,8 @@ class DBSA_DB {
              GROUP BY event_data
              ORDER BY searches DESC
              LIMIT %d",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59',
+            self::utc_start($from),
+            self::utc_end($to),
             $limit
         ), ARRAY_A);
     }
@@ -696,8 +758,8 @@ class DBSA_DB {
                AND created_at BETWEEN %s AND %s
              GROUP BY event_data
              ORDER BY total DESC",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59'
+            self::utc_start($from),
+            self::utc_end($to)
         ), ARRAY_A);
     }
 
@@ -716,8 +778,8 @@ class DBSA_DB {
              GROUP BY page_url
              ORDER BY total DESC
              LIMIT %d",
-            $from . ' 00:00:00',
-            $to . ' 23:59:59',
+            self::utc_start($from),
+            self::utc_end($to),
             $limit
         ), ARRAY_A);
     }

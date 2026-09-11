@@ -4,6 +4,7 @@
  *
  * GET /wp-json/dbsa/v1/stats
  * Parametri: from (Y-m-d), to (Y-m-d), metric (pageviews|visitors|downloads|events|all)
+ * Le date sono giorni nel fuso orario del sito (v3.3.0).
  *
  * GET /wp-json/dbsa/v1/stats/pages
  * GET /wp-json/dbsa/v1/stats/referrers
@@ -315,19 +316,23 @@ class DBSA_REST_API {
     private function date_args(): array {
         return array(
             'from' => array(
-                'default'           => gmdate('Y-m-d', strtotime('-29 days')),
+                'default'           => gmdate('Y-m-d', strtotime(current_time('Y-m-d') . ' -29 days')),
                 'sanitize_callback' => 'sanitize_text_field',
                 'validate_callback' => array($this, 'validate_date'),
             ),
             'to' => array(
-                'default'           => gmdate('Y-m-d'),
+                'default'           => current_time('Y-m-d'),
                 'sanitize_callback' => 'sanitize_text_field',
                 'validate_callback' => array($this, 'validate_date'),
             ),
         );
     }
 
-    public function validate_date(string $value): bool {
+    public function validate_date($value): bool {
+        // Niente type hint: ?from[]=x arriva come array e causerebbe un TypeError (500)
+        if (!is_string($value)) {
+            return false;
+        }
         $d = DateTime::createFromFormat('Y-m-d', $value);
         return $d && $d->format('Y-m-d') === $value;
     }

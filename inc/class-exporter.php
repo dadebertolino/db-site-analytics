@@ -38,9 +38,13 @@ class DBSA_Exporter {
             wp_die(esc_html__('Nonce non valido.', 'db-site-analytics'));
         }
 
-        $type = sanitize_key($_GET['dbsa_export']); // 'pageviews' | 'downloads'
-        $from = sanitize_text_field($_GET['from'] ?? gmdate('Y-m-d', strtotime('-29 days')));
-        $to   = sanitize_text_field($_GET['to']   ?? gmdate('Y-m-d'));
+        $type = sanitize_key($_GET['dbsa_export']); // 'pageviews' | 'downloads' | 'events'
+
+        // v3.3.0 — Date validate: finiscono anche nel nome del file
+        list($from, $to) = DBSA_Admin::get_date_range(
+            sanitize_text_field(wp_unslash($_GET['from'] ?? '')),
+            sanitize_text_field(wp_unslash($_GET['to'] ?? ''))
+        );
 
         if ($type === 'pageviews') {
             $this->export_pageviews($from, $to);
@@ -67,12 +71,12 @@ class DBSA_Exporter {
         fwrite($out, "\xEF\xBB\xBF");
 
         fputcsv($out, array(
-            'Data/Ora (UTC)', 'URL Pagina', 'Titolo Pagina', 'Referrer', 'Host Referrer', 'Dispositivo', 'Browser', 'OS'
-        ), ';');
+            'Data/Ora (fuso del sito)', 'URL Pagina', 'Titolo Pagina', 'Referrer', 'Host Referrer', 'Dispositivo', 'Browser', 'OS'
+        ), ';', '"', '');
 
         foreach ($rows as $row) {
             fputcsv($out, array(
-                $row['created_at'],
+                get_date_from_gmt($row['created_at']),
                 $row['page_url'],
                 $row['page_title'],
                 $row['referrer'],
@@ -80,7 +84,7 @@ class DBSA_Exporter {
                 $row['device_type'],
                 $row['browser'],
                 $row['os'],
-            ), ';');
+            ), ';', '"', '');
         }
 
         fclose($out);
@@ -101,16 +105,16 @@ class DBSA_Exporter {
         fwrite($out, "\xEF\xBB\xBF");
 
         fputcsv($out, array(
-            'Data/Ora (UTC)', 'Nome File', 'URL File', 'Pagina di Provenienza'
-        ), ';');
+            'Data/Ora (fuso del sito)', 'Nome File', 'URL File', 'Pagina di Provenienza'
+        ), ';', '"', '');
 
         foreach ($rows as $row) {
             fputcsv($out, array(
-                $row['created_at'],
+                get_date_from_gmt($row['created_at']),
                 $row['file_name'],
                 $row['file_url'],
                 $row['page_url'],
-            ), ';');
+            ), ';', '"', '');
         }
 
         fclose($out);
@@ -131,16 +135,16 @@ class DBSA_Exporter {
         fwrite($out, "\xEF\xBB\xBF");
 
         fputcsv($out, array(
-            'Data/Ora (UTC)', 'Tipo Evento', 'Dato Evento', 'Pagina'
-        ), ';');
+            'Data/Ora (fuso del sito)', 'Tipo Evento', 'Dato Evento', 'Pagina'
+        ), ';', '"', '');
 
         foreach ($rows as $row) {
             fputcsv($out, array(
-                $row['created_at'],
+                get_date_from_gmt($row['created_at']),
                 $row['event_type'],
                 $row['event_data'],
                 $row['page_url'],
-            ), ';');
+            ), ';', '"', '');
         }
 
         fclose($out);

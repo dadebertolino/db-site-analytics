@@ -32,7 +32,7 @@ $export_dl_url = add_query_arg(array(
                 <label for="dbsa_from_dl"><?php esc_html_e('Dal', 'db-site-analytics'); ?></label>
                 <input type="date" id="dbsa_from_dl" name="from" value="<?php echo esc_attr($from); ?>">
                 <label for="dbsa_to_dl"><?php esc_html_e('al', 'db-site-analytics'); ?></label>
-                <input type="date" id="dbsa_to_dl" name="to" value="<?php echo esc_attr($to); ?>" max="<?php echo esc_attr(gmdate('Y-m-d')); ?>">
+                <input type="date" id="dbsa_to_dl" name="to" value="<?php echo esc_attr($to); ?>" max="<?php echo esc_attr(current_time('Y-m-d')); ?>">
                 <button type="submit" class="db-ui-btn db-ui-btn-primary"><?php esc_html_e('Filtra', 'db-site-analytics'); ?></button>
                 <a href="<?php echo esc_url(admin_url('admin.php?page=dbsa-downloads')); ?>" class="db-ui-btn"><?php esc_html_e('Reset', 'db-site-analytics'); ?></a>
             </form>

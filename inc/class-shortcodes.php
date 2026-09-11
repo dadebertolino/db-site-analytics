@@ -26,11 +26,14 @@ class DBSA_Shortcodes {
 
     private function __construct() {
         add_shortcode('dbsa_views', array($this, 'render_views'));
-        add_action('wp_enqueue_scripts', array($this, 'enqueue_frontend_style'));
+        add_action('wp_enqueue_scripts', array($this, 'register_frontend_style'));
     }
 
-    public function enqueue_frontend_style(): void {
-        wp_enqueue_style(
+    /**
+     * Registrato su tutte le pagine, caricato solo dove lo shortcode è usato.
+     */
+    public function register_frontend_style(): void {
+        wp_register_style(
             'dbsa-frontend',
             DBSA_PLUGIN_URL . 'assets/css/frontend.css',
             array(),
@@ -43,6 +46,8 @@ class DBSA_Shortcodes {
      */
     public function render_views($atts): string {
         // Niente type hint: WP ≤ 6.4 passa '' (stringa) se lo shortcode non ha attributi
+        wp_enqueue_style('dbsa-frontend');
+
         $atts = shortcode_atts(array(
             'page_id' => '',
             'period'  => 30,
@@ -87,9 +92,10 @@ class DBSA_Shortcodes {
         global $wpdb;
         $table = DBSA_DB::table_pageviews();
 
-        // Oggi incluso: period=30 → 30 giorni, come la dashboard
-        $from = gmdate('Y-m-d', strtotime('-' . ($period - 1) . ' days')) . ' 00:00:00';
-        $to   = gmdate('Y-m-d') . ' 23:59:59';
+        // Oggi incluso: period=30 → 30 giorni locali, come la dashboard
+        $today = current_time('Y-m-d');
+        $from  = DBSA_DB::utc_start(gmdate('Y-m-d', strtotime($today . ' -' . ($period - 1) . ' days')));
+        $to    = DBSA_DB::utc_end($today);
 
         // Normalizza URL: cerca con e senza trailing slash
         $url_no_slash   = rtrim($page_url, '/');

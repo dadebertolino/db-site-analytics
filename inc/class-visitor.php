@@ -28,11 +28,13 @@ class DBSA_Visitor {
 
     /**
      * Ottiene o rigenera il salt giornaliero.
+     * Il giorno è quello locale del sito (v3.3.0), lo stesso usato dalla
+     * dashboard: un visitatore ha un solo hash per giorno visualizzato.
      * Usa add_option (atomico a livello DB) per evitare che due richieste
      * concorrenti al cambio giorno generino salt diversi.
      */
     public static function get_daily_salt(): string {
-        $today     = gmdate('Y-m-d');
+        $today     = current_time('Y-m-d');
         $salt_date = get_option('dbsa_salt_date', '');
 
         if ($salt_date === $today) {
@@ -43,17 +45,35 @@ class DBSA_Visitor {
         $lock_key = 'dbsa_salt_lock_' . $today;
         $new_salt = wp_generate_password(32, true, true);
 
-        if (add_option($lock_key, $new_salt, '', 'no')) {
+        if (add_option($lock_key, $new_salt, '', false)) {
             // Questa richiesta ha vinto: aggiorna il salt ufficiale
             update_option('dbsa_daily_salt', $new_salt);
             update_option('dbsa_salt_date',  $today);
-            // Pulisci lock del giorno precedente
-            delete_option('dbsa_salt_lock_' . gmdate('Y-m-d', strtotime('-1 day')));
+            self::purge_old_salt_locks();
             return $new_salt;
         }
 
         // Un'altra richiesta ha già rigenerato: usa il suo salt
         return get_option($lock_key, get_option('dbsa_daily_salt', $new_salt));
+    }
+
+    /**
+     * Elimina i lock dei giorni passati. Ogni lock contiene il salt del suo
+     * giorno: se restasse nel database, gli hash di quel giorno sarebbero
+     * ricostruibili (prima si cancellava solo il lock di ieri).
+     */
+    public static function purge_old_salt_locks(): void {
+        global $wpdb;
+
+        $old_locks = $wpdb->get_col($wpdb->prepare(
+            "SELECT option_name FROM {$wpdb->options} WHERE option_name LIKE %s AND option_name != %s",
+            $wpdb->esc_like('dbsa_salt_lock_') . '%',
+            'dbsa_salt_lock_' . current_time('Y-m-d')
+        ));
+
+        foreach ($old_locks as $option_name) {
+            delete_option($option_name);
+        }
     }
 
     /**
