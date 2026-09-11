@@ -20,6 +20,8 @@ class DB_GitHub_Updater {
     private $github_repo;
     private $cache_key;
     private $cache_expiry = 43200; // 12 ore
+    private $was_active         = false;
+    private $was_network_active = false;
 
     public function __construct($plugin_file, $github_user, $github_repo) {
         $this->file            = $plugin_file;
@@ -31,6 +33,8 @@ class DB_GitHub_Updater {
 
         add_filter('pre_set_site_transient_update_plugins', array($this, 'check_update'));
         add_filter('plugins_api', array($this, 'plugin_info'), 10, 3);
+        // Priorità 5: prima che WordPress disattivi il plugin per l'upgrade
+        add_filter('upgrader_pre_install', array($this, 'remember_active_state'), 5, 2);
         add_filter('upgrader_post_install', array($this, 'post_install'), 10, 3);
     }
 
@@ -137,6 +141,17 @@ class DB_GitHub_Updater {
         );
     }
 
+    /**
+     * Memorizza se il plugin era attivo prima dell'aggiornamento.
+     */
+    public function remember_active_state($response, $hook_extra) {
+        if (isset($hook_extra['plugin']) && $hook_extra['plugin'] === $this->plugin_basename && function_exists('is_plugin_active')) {
+            $this->was_active         = is_plugin_active($this->plugin_basename);
+            $this->was_network_active = is_multisite() && is_plugin_active_for_network($this->plugin_basename);
+        }
+        return $response;
+    }
+
     public function post_install($response, $hook_extra, $result) {
         if (!isset($hook_extra['plugin']) || $hook_extra['plugin'] !== $this->plugin_basename) {
             return $result;
@@ -146,12 +161,14 @@ class DB_GitHub_Updater {
         $install_dir = $result['destination'];
         $proper_dir  = WP_PLUGIN_DIR . '/' . $this->plugin_slug;
 
-        if ($install_dir !== $proper_dir) {
-            $wp_filesystem->move($install_dir, $proper_dir);
+        if ($install_dir !== $proper_dir && $wp_filesystem->move($install_dir, $proper_dir)) {
             $result['destination'] = $proper_dir;
         }
 
-        activate_plugin($this->plugin_basename);
+        // Riattiva solo se era attivo: un plugin disattivato deve restare tale
+        if ($this->was_active) {
+            activate_plugin($this->plugin_basename, '', $this->was_network_active);
+        }
         return $result;
     }
 }

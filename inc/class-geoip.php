@@ -193,18 +193,20 @@ class DBSA_GeoIP {
     private function download_month(string $month) {
         $url = sprintf(self::DOWNLOAD_URL, $month);
 
+        // wp_tempnam crea già il file: va eliminato anche se la richiesta fallisce
+        $tmp_gz   = wp_tempnam('dbsa-geoip');
         $response = wp_remote_get($url, array(
             'timeout'  => 120,
             'stream'   => true,
-            'filename' => wp_tempnam('dbsa-geoip'),
+            'filename' => $tmp_gz,
         ));
 
         if (is_wp_error($response)) {
+            @unlink($tmp_gz);
             return $response;
         }
 
-        $tmp_gz = $response['filename'] ?? '';
-        $code   = wp_remote_retrieve_response_code($response);
+        $code = wp_remote_retrieve_response_code($response);
 
         if ($code !== 200 || !is_readable($tmp_gz)) {
             @unlink($tmp_gz);

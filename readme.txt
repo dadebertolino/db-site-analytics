@@ -4,27 +4,27 @@ Tags: analytics, statistics, gdpr, privacy, tracking
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.2.0
+Stable tag: 3.3.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
-Tracciamento visite server-side senza cookie, senza servizi esterni, GDPR compliant by design.
+Tracciamento visite server-side senza cookie e senza servizi esterni. Privacy by design.
 
 == Description ==
 
 **DB Site Analytics** è un plugin WordPress per il tracciamento delle visite senza dipendenze esterne.
 
-* Zero cookie di profilazione
-* Zero JavaScript di tracking nel frontend
+* Nessun cookie
+* Nessun JavaScript per contare le visite (script leggeri solo per le funzioni opzionali download ed eventi)
 * Zero servizi esterni (niente Google, Matomo, Plausible)
 * I dati restano nel tuo database WordPress
-* GDPR compliant by design — non serve consenso
+* Privacy by design: nessun IP salvato, nessun dato inviato a terzi
 
 = Come funziona =
 
-Il tracciamento avviene lato server tramite l'hook `template_redirect`. Nessuno script viene iniettato nelle pagine, le performance non vengono impattate e gli ad-blocker non possono bloccarlo.
+Il tracciamento avviene lato server tramite l'hook `template_redirect`. Nessuno script viene iniettato nelle pagine per contare le visite e gli ad-blocker non possono bloccarlo. Vengono contate solo le pagine reali: 404, bot, richieste HEAD e prefetch del browser sono esclusi.
 
-Per contare i visitatori unici senza identificarli, viene generato un hash giornaliero anonimo: `SHA256(IP + UserAgent + salt_giornaliero)`. Il salt cambia ogni notte — dopo 24h l'hash è irrecuperabile. L'indirizzo IP non viene mai salvato.
+Per contare i visitatori unici senza identificarli, viene generato un hash giornaliero: `SHA256(IP + UserAgent + salt_giornaliero)`. Il salt cambia a mezzanotte (fuso orario del sito) e quello precedente viene eliminato: da quel momento l'hash non è più ricollegabile al visitatore. L'indirizzo IP non viene mai salvato.
 
 = Funzionalità =
 
@@ -35,11 +35,15 @@ Per contare i visitatori unici senza identificarli, viene generato un hash giorn
 * Shortcode `[dbsa_views]` per mostrare il contatore visite
 * REST API autenticata `/wp-json/dbsa/v1/stats`
 * Export CSV (pageview, download, eventi)
+* Ricerche interne e anteprime di condivisione (Facebook, WhatsApp, Telegram…) come report separati
+* Bonifica dello storico: esclude il rumore registrato in passato, senza cancellare dati
 * Auto-aggiornamento da GitHub Releases
 
 = Privacy =
 
-Questo plugin non raccoglie dati personali. Non installa cookie. Non comunica con servizi di terze parti. Non richiede consenso ai sensi del GDPR e del Regolamento ePrivacy.
+Il plugin è progettato per ridurre al minimo i dati personali: non salva indirizzi IP, non installa cookie, non memorizza nulla sul dispositivo del visitatore e non comunica con servizi di terze parti (a parte il download mensile del database GeoIP, se attivato). I referrer esterni vengono salvati senza query string.
+
+Il visitor_hash è un dato pseudonimo durante la giornata e diventa non ricollegabile dopo la rotazione del salt. In genere non serve un banner di consenso, ma il trattamento va descritto nell'informativa privacy. Se attivi il tracciamento delle ricerche interne, i termini cercati possono contenere dati personali.
 
 == Installation ==
 
@@ -52,11 +56,19 @@ Questo plugin non raccoglie dati personali. Non installa cookie. Non comunica co
 
 = Devo mettere il banner cookie per questo plugin? =
 
-No. Il plugin non installa cookie e non raccoglie dati personali. Non è necessario il consenso ai sensi del GDPR e del Regolamento ePrivacy.
+In genere no: il plugin non installa cookie e non memorizza nulla sul dispositivo del visitatore. Il trattamento dei dati (hash giornaliero, eventuali termini di ricerca) va comunque indicato nell'informativa privacy. Per casi specifici confrontati con il tuo consulente privacy.
 
 = Il plugin rallenta il sito? =
 
-No. Il tracciamento avviene completamente lato server, senza JavaScript aggiunto alle pagine. L'impatto sulle performance è trascurabile (una query INSERT per pageview).
+No. Il tracciamento avviene lato server, senza JavaScript aggiunto alle pagine. L'impatto sulle performance è trascurabile (una query INSERT per pageview).
+
+= Uso una cache di pagina: le visite vengono contate? =
+
+Solo quelle che raggiungono PHP. Con una cache di pagina (WP Super Cache, LiteSpeed Cache, Cloudflare APO…) le pagine servite dalla cache non eseguono WordPress e non vengono conteggiate.
+
+= Dopo l'aggiornamento alla 3.3.0 vedo meno visite e referral. È normale? =
+
+Sì. Dalla 3.3.0 non vengono più contati 404, bot, prefetch, ricerche e navigazione interna tra le pagine del sito: quei numeri non misuravano visite reali. Per ripulire anche i dati passati usa "Bonifica storico" nelle impostazioni.
 
 = Posso usarlo in multisite? =
 
@@ -79,6 +91,29 @@ Il file `uninstall.php` rimuove tutte le tabelle del database e tutte le opzioni
 5. Impostazioni
 
 == Changelog ==
+
+= 3.3.0 =
+* Accuratezza: esclusi dal conteggio i 404 (scanner che cercano .env, up.php, wp-login…), le richieste HEAD, il prefetch/prerender del browser, favicon, anteprime ed embed
+* Accuratezza: filtro bot rivisto (richieste senza User-Agent, HeadlessChrome, okhttp, Bytespider, PetalBot…) ed estendibile con il filtro dbsa_bot_patterns
+* Accuratezza: referrer normalizzati per host (senza www); la navigazione interna non conta più come referral. Nuova colonna referrer_host, storico ricalcolato in background
+* Accuratezza: giorni, grafico e filtri seguono il fuso orario del sito (prima UTC), con gestione dell'ora legale; il salt dei visitatori ruota a mezzanotte locale e non più due volte al giorno
+* Nuovo: "Escludi lo staff del sito" — le visite di chi può modificare contenuti non vengono registrate (l'opzione "Escludi gli amministratori" non era applicata)
+* Nuovo: ricerche interne tracciate come evento separato (non più come pagine), con un massimo di 10 ricerche al minuto per IP
+* Nuovo: conteggio delle anteprime di condivisione (Facebook, WhatsApp, Telegram, X, LinkedIn…) per stimare quante volte una pagina viene condivisa
+* Nuovo: "Bonifica storico" nelle impostazioni — esclude dalle statistiche il rumore registrato in passato, senza cancellare dati e con ripristino
+* Nuovo: campi searches e share_previews nell'endpoint REST /stats/events
+* Privacy: referrer esterni salvati senza query string; eliminati i lock del salt dei giorni passati, che ne conservavano una copia; testi privacy corretti (l'hash è pseudonimo durante la giornata)
+* Performance: Chart.js incluso nel plugin (nessuna richiesta a CDN), CSS dello shortcode caricato solo dove serve, query duplicata rimossa dalla dashboard
+* Fix: shortcode [dbsa_views] senza attributi in errore fatale su WordPress ≤ 6.4
+* Fix: iPhone e iPad rilevati come macOS
+* Fix: download con link relativi e link esterni //dominio non tracciati
+* Fix: con i permalink semplici tutte le visite risultavano sulla homepage
+* Fix: date non valide accettate nei filtri della dashboard e dell'export
+* Fix: l'auto-updater riattivava il plugin anche se era disattivato
+* Fix: file temporaneo non eliminato quando il download GeoIP falliva
+* Rimosso: endpoint AJAX dbsa_get_stats, non utilizzato
+* API: in /stats/referrers il campo referrer contiene ora l'host normalizzato
+* Export CSV: date nel fuso orario del sito e nuova colonna Host Referrer
 
 = 3.2.0 =
 * Nuovo: geolocalizzazione paese (GeoIP) self-contained — database gratuito DB-IP Country Lite scaricato localmente, nessuna registrazione, nessun servizio esterno a runtime
@@ -136,6 +171,9 @@ Il file `uninstall.php` rimuove tutte le tabelle del database e tutte le opzioni
 * Prima release: tracking pageview server-side, dashboard, filtro bot, widget WP, GitHub auto-updater
 
 == Upgrade Notice ==
+
+= 3.3.0 =
+Statistiche più accurate: dopo l'aggiornamento visite e referral caleranno, perché 404, bot e navigazione interna non vengono più contati. Usa "Bonifica storico" nelle impostazioni per ripulire anche i dati passati.
 
 = 3.0.3 =
 Fix critico: la dashboard non si apriva su alcuni server. Aggiornamento raccomandato.

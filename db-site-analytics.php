@@ -2,8 +2,8 @@
 /**
  * Plugin Name:       DB Site Analytics
  * Plugin URI:        https://www.davidebertolino.it/progetti/db-site-analytics/
- * Description:       Tracciamento visite server-side senza cookie, senza JavaScript di tracking, senza servizi esterni. GDPR compliant by design.
- * Version:           3.2.0
+ * Description:       Tracciamento visite server-side senza cookie e senza servizi esterni. Privacy by design.
+ * Version:           3.3.0
  * Author:            Davide Bertolino
  * Author URI:        https://www.davidebertolino.it
  * License:           GPL v2 or later
@@ -16,7 +16,7 @@
 if (!defined('ABSPATH')) exit;
 
 // Costanti
-define('DBSA_VERSION',    '3.2.0');
+define('DBSA_VERSION',    '3.3.0');
 define('DBSA_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DBSA_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DBSA_PLUGIN_FILE', __FILE__);
@@ -82,17 +82,13 @@ final class DB_Site_Analytics {
     }
 
     public function activate(): void {
-        $db = DBSA_DB::instance();
-        $db->create_tables();
-        $db->create_downloads_table();
-        $db->create_events_table();
-        update_option('dbsa_schema_version', DBSA_DB::SCHEMA_VERSION, false);
+        DBSA_DB::instance()->upgrade();
         $this->schedule_cron();
 
         // Genera salt giornaliero iniziale
         if (!get_option('dbsa_daily_salt')) {
             update_option('dbsa_daily_salt', wp_generate_password(32, true, true));
-            update_option('dbsa_salt_date',  gmdate('Y-m-d'));
+            update_option('dbsa_salt_date',  current_time('Y-m-d'));
         }
 
         // Impostazioni di default
@@ -109,12 +105,15 @@ final class DB_Site_Analytics {
                 'track_scroll'        => 0,
                 'trust_proxy'         => 0,
                 'enable_geoip'        => 0,
+                'track_searches'      => 1,
+                'track_share_previews' => 1,
             ));
         }
     }
 
     public function deactivate(): void {
         wp_clear_scheduled_hook('dbsa_daily_cron');
+        wp_clear_scheduled_hook(DBSA_DB::BACKFILL_HOOK);
     }
 
     private function schedule_cron(): void {

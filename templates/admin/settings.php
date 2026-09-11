@@ -13,7 +13,12 @@ $settings = wp_parse_args($settings, array(
     'exclude_paths'   => '',
     'exclude_roles'   => array('administrator'),
     'retention_days'  => 90,
+    'track_searches'       => 1,
+    'track_share_previews' => 1,
 ));
+
+$noise_report = $noise_report ?? array();
+$noise_marked = (int) ($noise_marked ?? 0);
 
 $all_roles      = wp_roles()->get_names();
 $retention_opts = array(30, 60, 90, 180, 365);
@@ -31,13 +36,43 @@ $retention_opts = array(30, 60, 90, 180, 365);
         </div>
     <?php endif; ?>
 
+    <?php if (isset($_GET['cleanup_marked'])) : ?>
+        <?php $dbsa_cleanup_n = absint($_GET['cleanup_marked']); ?>
+        <div class="db-ui-alert db-ui-alert-success">
+            <span class="db-ui-alert-icon">✅</span>
+            <span>
+                <?php
+                printf(
+                    /* translators: %s: numero di righe */
+                    esc_html(_n('%s riga esclusa dalle statistiche.', '%s righe escluse dalle statistiche.', $dbsa_cleanup_n, 'db-site-analytics')),
+                    esc_html(number_format_i18n($dbsa_cleanup_n))
+                );
+                ?>
+            </span>
+        </div>
+    <?php elseif (isset($_GET['cleanup_restored'])) : ?>
+        <?php $dbsa_cleanup_n = absint($_GET['cleanup_restored']); ?>
+        <div class="db-ui-alert db-ui-alert-success">
+            <span class="db-ui-alert-icon">↩️</span>
+            <span>
+                <?php
+                printf(
+                    /* translators: %s: numero di righe */
+                    esc_html(_n('%s riga ripristinata nelle statistiche.', '%s righe ripristinate nelle statistiche.', $dbsa_cleanup_n, 'db-site-analytics')),
+                    esc_html(number_format_i18n($dbsa_cleanup_n))
+                );
+                ?>
+            </span>
+        </div>
+    <?php endif; ?>
+
     <?php if (!empty($_GET['geoip_ok'])) : ?>
         <div class="db-ui-alert db-ui-alert-success">
             <span class="db-ui-alert-icon">✅</span>
             <span><?php esc_html_e('Database GeoIP aggiornato.', 'db-site-analytics'); ?></span>
         </div>
     <?php elseif (!empty($_GET['geoip_err'])) : ?>
-        <div class="db-ui-alert db-ui-alert-error">
+        <div class="db-ui-alert db-ui-alert-danger">
             <span class="db-ui-alert-icon">❌</span>
             <span><?php echo esc_html(get_option('dbsa_geoip_last_error', __('Aggiornamento GeoIP fallito.', 'db-site-analytics'))); ?></span>
         </div>
@@ -54,9 +89,9 @@ $retention_opts = array(30, 60, 90, 180, 365);
                 <div class="dbsa-field-row">
                     <label>
                         <input type="checkbox" name="exclude_admins" value="1" <?php checked(1, $settings['exclude_admins']); ?>>
-                        <?php esc_html_e('Escludi gli amministratori', 'db-site-analytics'); ?>
+                        <?php esc_html_e('Escludi lo staff del sito', 'db-site-analytics'); ?>
                     </label>
-                    <p class="description"><?php esc_html_e('Le visite degli utenti con ruolo Administrator non vengono registrate.', 'db-site-analytics'); ?></p>
+                    <p class="description"><?php esc_html_e('Le visite di chi può modificare contenuti (amministratori, editor, autori, collaboratori) non vengono mai registrate, anche se il tracciamento degli utenti loggati è attivo. Evita di contare le proprie visite mentre si lavora al sito.', 'db-site-analytics'); ?></p>
                 </div>
 
                 <div class="dbsa-field-row">
@@ -149,6 +184,24 @@ $retention_opts = array(30, 60, 90, 180, 365);
                     <p class="description"><?php esc_html_e('Misura fino a che punto i visitatori leggono le pagine. Richiede un piccolo JS nel frontend.', 'db-site-analytics'); ?></p>
                 </div>
 
+                <hr class="db-ui-sep">
+
+                <div class="dbsa-field-row">
+                    <label>
+                        <input type="checkbox" name="track_searches" value="1" <?php checked(1, $settings['track_searches']); ?>>
+                        <?php esc_html_e('Traccia le ricerche interne', 'db-site-analytics'); ?>
+                    </label>
+                    <p class="description"><?php esc_html_e('Le ricerche vengono registrate come evento separato, non come pagine visitate. Scartate le ricerche vuote o più lunghe di 100 caratteri; massimo 10 ricerche al minuto per IP. Lato server, nessun JS.', 'db-site-analytics'); ?></p>
+                </div>
+
+                <div class="dbsa-field-row">
+                    <label>
+                        <input type="checkbox" name="track_share_previews" value="1" <?php checked(1, $settings['track_share_previews']); ?>>
+                        <?php esc_html_e('Conta le anteprime di condivisione (Facebook, WhatsApp, Telegram…)', 'db-site-analytics'); ?>
+                    </label>
+                    <p class="description"><?php esc_html_e('Quando un link viene condiviso, la piattaforma scarica la pagina per generare l\'anteprima. Queste richieste sono escluse dalle visite ma contate a parte: indicano, in modo approssimato, quante volte una pagina è stata condivisa. Lato server, nessun JS.', 'db-site-analytics'); ?></p>
+                </div>
+
             </div>
         </div>
 
@@ -226,8 +279,9 @@ $retention_opts = array(30, 60, 90, 180, 365);
                 <div class="db-ui-alert db-ui-alert-info">
                     <span class="db-ui-alert-icon">ℹ️</span>
                     <div>
-                        <strong><?php esc_html_e('Questo plugin non raccoglie dati personali.', 'db-site-analytics'); ?></strong><br>
-                        <?php esc_html_e('Non vengono salvati indirizzi IP, cookie di tracciamento o identificatori persistenti. Il visitor_hash è un contatore giornaliero anonimo non reversibile. Nessun consenso è richiesto ai sensi del GDPR/Regolamento ePrivacy.', 'db-site-analytics'); ?>
+                        <strong><?php esc_html_e('Il plugin è progettato per ridurre al minimo i dati personali.', 'db-site-analytics'); ?></strong><br>
+                        <?php esc_html_e('Non salva indirizzi IP, non usa cookie, non memorizza nulla sul dispositivo del visitatore e non invia dati a terze parti. Il visitor_hash deriva da IP e User-Agent con un salt che cambia ogni giorno e poi viene eliminato: dopo la rotazione l\'hash non è più ricollegabile a un visitatore, ma durante la giornata è un dato pseudonimo, non anonimo.', 'db-site-analytics'); ?><br>
+                        <?php esc_html_e('In genere non serve un banner di consenso, ma il trattamento va descritto nell\'informativa privacy. Se tracci le ricerche interne, ricorda che i termini cercati possono contenere dati personali.', 'db-site-analytics'); ?>
                     </div>
                 </div>
             </div>
@@ -244,9 +298,81 @@ $retention_opts = array(30, 60, 90, 180, 365);
     <?php if (!empty($settings['enable_geoip'])) : ?>
     <form method="post" action="" style="margin-top:12px;">
         <?php wp_nonce_field('dbsa_geoip_update_nonce'); ?>
-        <button type="submit" name="dbsa_geoip_update" value="1" class="db-ui-btn db-ui-btn-secondary">
+        <button type="submit" name="dbsa_geoip_update" value="1" class="db-ui-btn">
             <?php esc_html_e('Aggiorna ora il database GeoIP', 'db-site-analytics'); ?>
         </button>
     </form>
     <?php endif; ?>
+
+    <!-- Bonifica storico (v3.3.0) -->
+    <div class="db-ui-card" style="margin-top:24px;">
+        <div class="db-ui-card-header">
+            <h3>🧹 <?php esc_html_e('Bonifica storico', 'db-site-analytics'); ?></h3>
+            <?php if ($noise_marked > 0) : ?>
+                <span class="db-ui-badge db-ui-badge-muted">
+                    <?php
+                    printf(
+                        /* translators: %s: numero di righe */
+                        esc_html(_n('%s riga già esclusa', '%s righe già escluse', $noise_marked, 'db-site-analytics')),
+                        esc_html(number_format_i18n($noise_marked))
+                    );
+                    ?>
+                </span>
+            <?php endif; ?>
+        </div>
+        <div class="db-ui-card-body dbsa-settings-body">
+            <div class="db-ui-alert db-ui-alert-warning">
+                <span class="db-ui-alert-icon">⚠️</span>
+                <span><?php esc_html_e('I filtri su 404, bot e ricerche valgono da ora in avanti. Qui puoi escludere dalle statistiche il rumore registrato in precedenza. Le righe non vengono cancellate: sono marcate e nascoste, e puoi ripristinarle in qualsiasi momento. Fai comunque un backup del database prima di procedere.', 'db-site-analytics'); ?></span>
+            </div>
+
+            <form method="post" action="">
+                <?php wp_nonce_field('dbsa_cleanup_nonce'); ?>
+                <div class="dbsa-table-wrap">
+                    <table class="db-ui-table">
+                        <thead>
+                            <tr>
+                                <th></th>
+                                <th><?php esc_html_e('Categoria', 'db-site-analytics'); ?></th>
+                                <th><?php esc_html_e('Righe', 'db-site-analytics'); ?></th>
+                                <th><?php esc_html_e('Valori più frequenti', 'db-site-analytics'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($noise_report as $rule_key => $rule) : ?>
+                            <tr>
+                                <td>
+                                    <input type="checkbox" name="cleanup_rules[]" id="dbsa_cleanup_<?php echo esc_attr($rule_key); ?>"
+                                           value="<?php echo esc_attr($rule_key); ?>" <?php disabled(0, $rule['count']); ?>>
+                                </td>
+                                <td><label for="dbsa_cleanup_<?php echo esc_attr($rule_key); ?>"><?php echo esc_html($rule['label']); ?></label></td>
+                                <td><strong><?php echo esc_html(number_format_i18n($rule['count'])); ?></strong></td>
+                                <td>
+                                    <?php foreach ($rule['samples'] as $sample) : ?>
+                                        <div class="dbsa-url-muted">
+                                            <?php echo esc_html(wp_make_link_relative($sample['label']) ?: '/'); ?>
+                                            (<?php echo esc_html(number_format_i18n($sample['total'])); ?>)
+                                        </div>
+                                    <?php endforeach; ?>
+                                </td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                </div>
+                <p class="description"><?php esc_html_e('Verifica che i numeri corrispondano a quanto vedi in dashboard prima di procedere. Le categorie possono sovrapporsi: ogni riga viene esclusa una sola volta.', 'db-site-analytics'); ?></p>
+
+                <div class="dbsa-submit-row">
+                    <button type="submit" name="dbsa_cleanup_apply" value="1" class="db-ui-btn db-ui-btn-danger">
+                        <?php esc_html_e('Escludi le categorie selezionate', 'db-site-analytics'); ?>
+                    </button>
+                    <?php if ($noise_marked > 0) : ?>
+                        <button type="submit" name="dbsa_cleanup_restore" value="1" class="db-ui-btn">
+                            <?php esc_html_e('Ripristina tutte le righe escluse', 'db-site-analytics'); ?>
+                        </button>
+                    <?php endif; ?>
+                </div>
+            </form>
+        </div>
+    </div>
 </div>

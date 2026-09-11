@@ -16,7 +16,12 @@ $export_ev_url  = add_query_arg(array(
 ), admin_url('admin.php'));
 
 $settings = get_option('dbsa_settings', array());
-$events_enabled = !empty($settings['track_outbound']) || !empty($settings['track_scroll']);
+$events_enabled = !empty($settings['track_outbound']) || !empty($settings['track_scroll'])
+    || !empty($settings['track_searches'] ?? 1) || !empty($settings['track_share_previews'] ?? 1);
+
+$searches       = $searches       ?? array();
+$share_networks = $share_networks ?? array();
+$shared_pages   = $shared_pages   ?? array();
 ?>
 <div class="wrap">
 
@@ -35,7 +40,7 @@ $events_enabled = !empty($settings['track_outbound']) || !empty($settings['track
                 <label for="dbsa_from_ev"><?php esc_html_e('Dal', 'db-site-analytics'); ?></label>
                 <input type="date" id="dbsa_from_ev" name="from" value="<?php echo esc_attr($from); ?>">
                 <label for="dbsa_to_ev"><?php esc_html_e('al', 'db-site-analytics'); ?></label>
-                <input type="date" id="dbsa_to_ev" name="to" value="<?php echo esc_attr($to); ?>" max="<?php echo esc_attr(gmdate('Y-m-d')); ?>">
+                <input type="date" id="dbsa_to_ev" name="to" value="<?php echo esc_attr($to); ?>" max="<?php echo esc_attr(current_time('Y-m-d')); ?>">
                 <button type="submit" class="db-ui-btn db-ui-btn-primary"><?php esc_html_e('Filtra', 'db-site-analytics'); ?></button>
                 <a href="<?php echo esc_url(admin_url('admin.php?page=dbsa-events')); ?>" class="db-ui-btn"><?php esc_html_e('Reset', 'db-site-analytics'); ?></a>
             </form>
@@ -143,6 +148,106 @@ $events_enabled = !empty($settings['track_outbound']) || !empty($settings['track
                         </span>
                     </div>
                 <?php endforeach; endif; ?>
+            </div>
+        </div>
+
+    </div><!-- /.dbsa-grid-2 -->
+
+    <div class="dbsa-grid-2">
+
+        <!-- Ricerche interne (v3.3.0) -->
+        <div class="db-ui-card">
+            <div class="db-ui-card-header">
+                <h3>🔍 <?php esc_html_e('Ricerche interne', 'db-site-analytics'); ?></h3>
+                <?php if (empty($settings['track_searches'] ?? 1)) : ?>
+                    <span class="db-ui-badge db-ui-badge-muted"><?php esc_html_e('Disabilitato', 'db-site-analytics'); ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="db-ui-card-body dbsa-table-wrap">
+                <?php if (empty($searches)) : ?>
+                    <div class="db-ui-empty">
+                        <span class="db-ui-empty-icon">🔍</span>
+                        <span class="db-ui-empty-text"><?php esc_html_e('Nessuna ricerca nel periodo.', 'db-site-analytics'); ?></span>
+                    </div>
+                <?php else : ?>
+                    <table class="db-ui-table">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e('Termine', 'db-site-analytics'); ?></th>
+                                <th><?php esc_html_e('Ricerche', 'db-site-analytics'); ?></th>
+                                <th><?php esc_html_e('Visitatori', 'db-site-analytics'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($searches as $srch) : ?>
+                            <tr>
+                                <td><?php echo esc_html($srch['term']); ?></td>
+                                <td><strong><?php echo esc_html(number_format_i18n($srch['searches'])); ?></strong></td>
+                                <td><?php echo esc_html(number_format_i18n($srch['visitors'])); ?></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                <?php endif; ?>
+            </div>
+        </div>
+
+        <!-- Anteprime di condivisione (v3.3.0) -->
+        <div class="db-ui-card">
+            <div class="db-ui-card-header">
+                <h3>📣 <?php esc_html_e('Condivisioni (anteprime link)', 'db-site-analytics'); ?></h3>
+                <?php if (empty($settings['track_share_previews'] ?? 1)) : ?>
+                    <span class="db-ui-badge db-ui-badge-muted"><?php esc_html_e('Disabilitato', 'db-site-analytics'); ?></span>
+                <?php endif; ?>
+            </div>
+            <div class="db-ui-card-body">
+                <?php if (empty($share_networks)) : ?>
+                    <div class="db-ui-empty">
+                        <span class="db-ui-empty-icon">📣</span>
+                        <span class="db-ui-empty-text"><?php esc_html_e('Nessuna anteprima generata nel periodo.', 'db-site-analytics'); ?></span>
+                    </div>
+                <?php else :
+                    $max_share = max(1, max(array_map('intval', array_column($share_networks, 'total'))));
+                    foreach ($share_networks as $net) :
+                        $pct_bar = round(((int) $net['total'] / $max_share) * 100);
+                ?>
+                    <div class="dbsa-bar-row">
+                        <span class="dbsa-bar-label"><?php echo esc_html($net['network']); ?></span>
+                        <div class="db-ui-progress dbsa-inline-bar">
+                            <div class="db-ui-progress-fill" style="width:<?php echo esc_attr($pct_bar); ?>%"></div>
+                        </div>
+                        <span class="dbsa-bar-value"><?php echo esc_html(number_format_i18n($net['total'])); ?></span>
+                    </div>
+                <?php endforeach; ?>
+
+                    <?php if (!empty($shared_pages)) : ?>
+                    <table class="db-ui-table" style="margin-top:12px;">
+                        <thead>
+                            <tr>
+                                <th><?php esc_html_e('Pagina', 'db-site-analytics'); ?></th>
+                                <th><?php esc_html_e('Anteprime', 'db-site-analytics'); ?></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                        <?php foreach ($shared_pages as $shp) : ?>
+                            <tr>
+                                <td>
+                                    <a href="<?php echo esc_url($shp['page_url']); ?>" target="_blank" rel="noopener noreferrer">
+                                        <?php echo esc_html(wp_make_link_relative($shp['page_url']) ?: '/'); ?>
+                                        <span class="screen-reader-text"><?php esc_html_e('(si apre in una nuova finestra)', 'db-site-analytics'); ?></span>
+                                    </a>
+                                </td>
+                                <td><strong><?php echo esc_html(number_format_i18n($shp['total'])); ?></strong></td>
+                            </tr>
+                        <?php endforeach; ?>
+                        </tbody>
+                    </table>
+                    <?php endif; ?>
+
+                    <p class="description" style="margin:10px 0 0;font-size:11px;">
+                        <?php esc_html_e('Conteggio approssimato: alcune piattaforme rigenerano l\'anteprima più volte per lo stesso link.', 'db-site-analytics'); ?>
+                    </p>
+                <?php endif; ?>
             </div>
         </div>
 

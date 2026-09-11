@@ -4,6 +4,7 @@
  *
  * GET /wp-json/dbsa/v1/stats
  * Parametri: from (Y-m-d), to (Y-m-d), metric (pageviews|visitors|downloads|events|all)
+ * Le date sono giorni nel fuso orario del sito (v3.3.0).
  *
  * GET /wp-json/dbsa/v1/stats/pages
  * GET /wp-json/dbsa/v1/stats/referrers
@@ -189,9 +190,10 @@ class DBSA_REST_API {
         return new WP_REST_Response(array(
             'period' => array('from' => $from, 'to' => $to),
             'data'   => array_map(function($r) {
+                // v3.3.0: aggregato per host normalizzato; 'referrer' mantenuto per compatibilità
                 return array(
                     'referrer'  => $r['referrer'],
-                    'host'      => wp_parse_url($r['referrer'], PHP_URL_HOST) ?: $r['referrer'],
+                    'host'      => $r['referrer'],
                     'pageviews' => (int) $r['pageviews'],
                 );
             }, $rows),
@@ -274,6 +276,27 @@ class DBSA_REST_API {
                     'users' => (int) $r['users'],
                 );
             }, $db->get_scroll_depth_summary($from, $to)),
+            'searches'     => array_map(function($r) {
+                return array(
+                    'term'     => $r['term'],
+                    'searches' => (int) $r['searches'],
+                    'visitors' => (int) $r['visitors'],
+                );
+            }, $db->get_top_searches($from, $to, $limit)),
+            'share_previews' => array(
+                'networks' => array_map(function($r) {
+                    return array(
+                        'network' => $r['network'],
+                        'total'   => (int) $r['total'],
+                    );
+                }, $db->get_share_preview_networks($from, $to)),
+                'pages'    => array_map(function($r) {
+                    return array(
+                        'url'   => $r['page_url'],
+                        'total' => (int) $r['total'],
+                    );
+                }, $db->get_top_shared_pages($from, $to, $limit)),
+            ),
         ), 200);
     }
 
@@ -282,25 +305,34 @@ class DBSA_REST_API {
     // -------------------------------------------------------------------------
 
     public function check_permission(): bool {
-        return current_user_can('manage_options');
+        if (!current_user_can('manage_options')) {
+            return false;
+        }
+        // Schema aggiornato prima delle query (es. subito dopo un update del plugin)
+        DBSA_DB::instance()->ensure_tables();
+        return true;
     }
 
     private function date_args(): array {
         return array(
             'from' => array(
-                'default'           => gmdate('Y-m-d', strtotime('-29 days')),
+                'default'           => gmdate('Y-m-d', strtotime(current_time('Y-m-d') . ' -29 days')),
                 'sanitize_callback' => 'sanitize_text_field',
                 'validate_callback' => array($this, 'validate_date'),
             ),
             'to' => array(
-                'default'           => gmdate('Y-m-d'),
+                'default'           => current_time('Y-m-d'),
                 'sanitize_callback' => 'sanitize_text_field',
                 'validate_callback' => array($this, 'validate_date'),
             ),
         );
     }
 
-    public function validate_date(string $value): bool {
+    public function validate_date($value): bool {
+        // Niente type hint: ?from[]=x arriva come array e causerebbe un TypeError (500)
+        if (!is_string($value)) {
+            return false;
+        }
         $d = DateTime::createFromFormat('Y-m-d', $value);
         return $d && $d->format('Y-m-d') === $value;
     }

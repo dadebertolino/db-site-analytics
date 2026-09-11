@@ -22,25 +22,9 @@ $comparison = $comparison ?? array(
 $dl_total   = (int) ($dl_total ?? 0);
 $countries  = $countries  ?? array();
 
-// Helper: calcola variazione percentuale (cast esplicito — wpdb restituisce stringhe)
-function dbsa_pct_change($current, $prev) {
-    $current = (int) $current;
-    $prev    = (int) $prev;
-    if ($prev === 0) return $current > 0 ? '+100%' : '—';
-    $pct = round((($current - $prev) / $prev) * 100, 1);
-    return ($pct >= 0 ? '+' : '') . $pct . '%';
-}
-function dbsa_pct_class($current, $prev) {
-    $current = (int) $current;
-    $prev    = (int) $prev;
-    if ($prev === 0) return '';
-    return $current >= $prev ? 'dbsa-trend-up' : 'dbsa-trend-down';
-}
-
 // URL export
 $export_nonce  = wp_create_nonce('dbsa_export');
 $export_pv_url = add_query_arg(array('dbsa_export' => 'pageviews', 'from' => $from, 'to' => $to, '_wpnonce' => $export_nonce), admin_url('admin.php'));
-$export_dl_url = add_query_arg(array('dbsa_export' => 'downloads', 'from' => $from, 'to' => $to, '_wpnonce' => $export_nonce), admin_url('admin.php'));
 
 // Prepara dati per Chart.js
 $chart_labels  = array();
@@ -93,7 +77,7 @@ foreach ($devices as $d) {
                 <label for="dbsa_from"><?php esc_html_e('Dal', 'db-site-analytics'); ?></label>
                 <input type="date" id="dbsa_from" name="from" value="<?php echo esc_attr($from); ?>" max="<?php echo esc_attr($to); ?>">
                 <label for="dbsa_to"><?php esc_html_e('al', 'db-site-analytics'); ?></label>
-                <input type="date" id="dbsa_to" name="to" value="<?php echo esc_attr($to); ?>" max="<?php echo esc_attr(gmdate('Y-m-d')); ?>">
+                <input type="date" id="dbsa_to" name="to" value="<?php echo esc_attr($to); ?>" max="<?php echo esc_attr(current_time('Y-m-d')); ?>">
                 <button type="submit" class="db-ui-btn db-ui-btn-primary"><?php esc_html_e('Filtra', 'db-site-analytics'); ?></button>
                 <a href="<?php echo esc_url(admin_url('admin.php?page=dbsa-dashboard')); ?>" class="db-ui-btn"><?php esc_html_e('Reset', 'db-site-analytics'); ?></a>
             </form>
@@ -224,8 +208,8 @@ foreach ($devices as $d) {
                             <?php foreach ($top_referrers as $ref) : ?>
                                 <tr>
                                     <td>
-                                        <a href="<?php echo esc_url($ref['referrer']); ?>" target="_blank" rel="noopener noreferrer">
-                                            <?php echo esc_html(parse_url($ref['referrer'], PHP_URL_HOST) ?: $ref['referrer']); ?>
+                                        <a href="<?php echo esc_url('https://' . $ref['referrer']); ?>" target="_blank" rel="noopener noreferrer">
+                                            <?php echo esc_html($ref['referrer']); ?>
                                             <span class="screen-reader-text"><?php esc_html_e('(si apre in una nuova finestra)', 'db-site-analytics'); ?></span>
                                         </a>
                                     </td>
@@ -293,8 +277,8 @@ foreach ($devices as $d) {
                     ),
                 );
                 foreach ($metrics as $metric) :
-                    $pct   = dbsa_pct_change($metric['current'], $metric['prev']);
-                    $cls   = dbsa_pct_class($metric['current'], $metric['prev']);
+                    $pct   = DBSA_Admin::pct_change($metric['current'], $metric['prev']);
+                    $cls   = DBSA_Admin::pct_class($metric['current'], $metric['prev']);
                 ?>
                 <div class="dbsa-comparison-item">
                     <div class="dbsa-comparison-icon"><?php echo esc_html($metric['icon']); ?></div>
@@ -418,75 +402,18 @@ foreach ($devices as $d) {
 
 </div><!-- /.wrap -->
 
-<script>
-(function() {
-    var labels    = <?php echo wp_json_encode($chart_labels); ?>;
-    var pvData    = <?php echo wp_json_encode($chart_pv); ?>;
-    var uvData    = <?php echo wp_json_encode($chart_uv); ?>;
-    var devLabels = <?php echo wp_json_encode($device_labels); ?>;
-    var devData   = <?php echo wp_json_encode($device_data); ?>;
-
-    document.addEventListener('DOMContentLoaded', function() {
-        if (typeof Chart === 'undefined') return;
-
-        // Grafico linee visite
-        var ctxLine = document.getElementById('dbsa-chart-views');
-        if (ctxLine) {
-            new Chart(ctxLine, {
-                type: 'line',
-                data: {
-                    labels: labels,
-                    datasets: [
-                        {
-                            label: '<?php echo esc_js(__('Pageview', 'db-site-analytics')); ?>',
-                            data: pvData,
-                            borderColor: '#2271b1',
-                            backgroundColor: 'rgba(34,113,177,0.08)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 3,
-                        },
-                        {
-                            label: '<?php echo esc_js(__('Visitatori unici', 'db-site-analytics')); ?>',
-                            data: uvData,
-                            borderColor: '#1d6e3f',
-                            backgroundColor: 'rgba(29,110,63,0.06)',
-                            fill: true,
-                            tension: 0.3,
-                            pointRadius: 3,
-                        }
-                    ]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'top' } },
-                    scales: {
-                        y: { beginAtZero: true, ticks: { precision: 0 } },
-                        x: { ticks: { maxTicksLimit: 15 } }
-                    }
-                }
-            });
-        }
-
-        // Donut device
-        var ctxDev = document.getElementById('dbsa-chart-devices');
-        if (ctxDev && devData.length) {
-            new Chart(ctxDev, {
-                type: 'doughnut',
-                data: {
-                    labels: devLabels,
-                    datasets: [{
-                        data: devData,
-                        backgroundColor: ['#2271b1', '#1d6e3f', '#dba617'],
-                        borderWidth: 2,
-                    }]
-                },
-                options: {
-                    responsive: true,
-                    plugins: { legend: { position: 'bottom' } }
-                }
-            });
-        }
-    });
-})();
-</script>
+<?php
+// Dati per assets/js/admin.js: stampati nel footer subito prima dello script
+wp_add_inline_script('dbsa-admin', 'window.dbsaChart = ' . wp_json_encode(array(
+    'labels'    => $chart_labels,
+    'pageviews' => $chart_pv,
+    'visitors'  => $chart_uv,
+    'devices'   => array(
+        'labels' => $device_labels,
+        'data'   => $device_data,
+    ),
+    'i18n'      => array(
+        'pageviews' => __('Pageview', 'db-site-analytics'),
+        'visitors'  => __('Visitatori unici', 'db-site-analytics'),
+    ),
+)) . ';', 'before');
