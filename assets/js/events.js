@@ -49,7 +49,8 @@
                 var host = url.hostname;
                 // È un link esterno se il dominio è diverso dall'home
                 if (host && host !== homeHost && host !== 'www.' + homeHost) {
-                    sendEvent('outbound_click', href, window.location.href);
+                    // URL assoluto: i link protocol-relative (//dominio) verrebbero rifiutati dal server
+                    sendEvent('outbound_click', url.href, window.location.href);
                 }
             } catch (err) {
                 // URL non parsabile, ignora

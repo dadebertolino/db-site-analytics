@@ -224,8 +224,8 @@ foreach ($devices as $d) {
                             <?php foreach ($top_referrers as $ref) : ?>
                                 <tr>
                                     <td>
-                                        <a href="<?php echo esc_url($ref['referrer']); ?>" target="_blank" rel="noopener noreferrer">
-                                            <?php echo esc_html(parse_url($ref['referrer'], PHP_URL_HOST) ?: $ref['referrer']); ?>
+                                        <a href="<?php echo esc_url('https://' . $ref['referrer']); ?>" target="_blank" rel="noopener noreferrer">
+                                            <?php echo esc_html($ref['referrer']); ?>
                                             <span class="screen-reader-text"><?php esc_html_e('(si apre in una nuova finestra)', 'db-site-analytics'); ?></span>
                                         </a>
                                     </td>

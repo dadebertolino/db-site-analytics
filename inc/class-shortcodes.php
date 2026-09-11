@@ -41,7 +41,8 @@ class DBSA_Shortcodes {
     /**
      * [dbsa_views page_id="" period="30" type="pageviews" format="full"]
      */
-    public function render_views(array $atts): string {
+    public function render_views($atts): string {
+        // Niente type hint: WP ≤ 6.4 passa '' (stringa) se lo shortcode non ha attributi
         $atts = shortcode_atts(array(
             'page_id' => '',
             'period'  => 30,
@@ -62,13 +63,12 @@ class DBSA_Shortcodes {
             $page_url = get_permalink(absint($atts['page_id']));
             if (!$page_url) return '';
         } else {
-            // Pagina corrente
-            global $wp;
-            $page_url = home_url(add_query_arg(array(), $wp->request));
+            // Pagina corrente, calcolata come fa il tracker
+            $page_url = DBSA_Tracker::get_current_url();
         }
 
         // v3.1.0 — Cache 10 min: evita una query COUNT a ogni render
-        $cache_key = 'dbsa_sc_' . md5($page_url . '|' . $period . '|' . $type);
+        $cache_key = DBSA_DB::cache_key('dbsa_sc_', $page_url . '|' . $period . '|' . $type);
         $count     = get_transient($cache_key);
         if (false === $count) {
             $count = $this->get_view_count($page_url, $period, $type);
@@ -87,7 +87,8 @@ class DBSA_Shortcodes {
         global $wpdb;
         $table = DBSA_DB::table_pageviews();
 
-        $from = gmdate('Y-m-d', strtotime("-{$period} days")) . ' 00:00:00';
+        // Oggi incluso: period=30 → 30 giorni, come la dashboard
+        $from = gmdate('Y-m-d', strtotime('-' . ($period - 1) . ' days')) . ' 00:00:00';
         $to   = gmdate('Y-m-d') . ' 23:59:59';
 
         // Normalizza URL: cerca con e senza trailing slash

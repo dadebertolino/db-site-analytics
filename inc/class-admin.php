@@ -23,6 +23,9 @@ class DBSA_Admin {
         add_action('admin_enqueue_scripts', array($this, 'enqueue_assets'));
         add_action('admin_init',            array($this, 'handle_settings_save'));
         add_action('admin_init',            array($this, 'handle_geoip_update'));
+        add_action('admin_init',            array($this, 'handle_cleanup'));
+        // Schema aggiornato anche se non arriva ancora traffico dopo un update
+        add_action('admin_init',            array(DBSA_DB::instance(), 'ensure_tables'));
         add_action('wp_ajax_dbsa_get_stats', array($this, 'ajax_get_stats'));
         add_action('wp_dashboard_setup',    array($this, 'register_dashboard_widget'));
     }
@@ -230,7 +233,10 @@ class DBSA_Admin {
             return array(
                 'outbound'     => $db->get_outbound_links($from, $to, 20),
                 'scroll_depth' => $db->get_scroll_depth_summary($from, $to),
-                'events_total' => $db->get_events_total($from, $to),
+                'events_total'   => $db->get_events_total($from, $to),
+                'searches'       => $db->get_top_searches($from, $to, 20),
+                'share_networks' => $db->get_share_preview_networks($from, $to),
+                'shared_pages'   => $db->get_top_shared_pages($from, $to, 10),
             );
         });
         extract($data); // phpcs:ignore WordPress.PHP.DontExtract
@@ -297,6 +303,8 @@ class DBSA_Admin {
             'track_scroll'         => isset($_POST['track_scroll']) ? 1 : 0,
             'trust_proxy'          => isset($_POST['trust_proxy']) ? 1 : 0,
             'enable_geoip'         => isset($_POST['enable_geoip']) ? 1 : 0,
+            'track_searches'       => isset($_POST['track_searches']) ? 1 : 0,
+            'track_share_previews' => isset($_POST['track_share_previews']) ? 1 : 0,
         );
 
         $old = get_option('dbsa_settings', array());
@@ -336,13 +344,39 @@ class DBSA_Admin {
         exit;
     }
 
+    /**
+     * Bonifica storico (v3.3.0): marca o ripristina le righe di rumore.
+     */
+    public function handle_cleanup(): void {
+        if (!isset($_POST['dbsa_cleanup_apply']) && !isset($_POST['dbsa_cleanup_restore'])) {
+            return;
+        }
+        if (!current_user_can('manage_options')) {
+            return;
+        }
+        check_admin_referer('dbsa_cleanup_nonce');
+
+        $db = DBSA_DB::instance();
+        if (isset($_POST['dbsa_cleanup_restore'])) {
+            $args = array('cleanup_restored' => $db->restore_noise());
+        } else {
+            $rules = array_map('sanitize_key', (array) wp_unslash($_POST['cleanup_rules'] ?? array()));
+            $args  = array('cleanup_marked' => $db->apply_noise_rules($rules));
+        }
+
+        wp_safe_redirect(add_query_arg($args, admin_url('admin.php?page=dbsa-settings')));
+        exit;
+    }
+
     public function render_settings(): void {
         if (!current_user_can('manage_options')) {
             wp_die(esc_html__('Permesso negato.', 'db-site-analytics'));
         }
 
-        $settings = get_option('dbsa_settings', array());
-        $saved    = !empty($_GET['saved']);
+        $settings     = get_option('dbsa_settings', array());
+        $saved        = !empty($_GET['saved']);
+        $noise_report = DBSA_DB::instance()->get_noise_report();
+        $noise_marked = DBSA_DB::instance()->get_marked_count();
 
         include DBSA_PLUGIN_DIR . 'templates/admin/settings.php';
     }
@@ -386,7 +420,7 @@ class DBSA_Admin {
      * Wrapper transient: esegue $callback solo se il dato non e' in cache.
      */
     private function cached(string $key, int $ttl, callable $callback) {
-        $key  = 'dbsa_c_' . md5($key);
+        $key  = DBSA_DB::cache_key('dbsa_c_', $key);
         $data = get_transient($key);
         if (false === $data) {
             $data = $callback();

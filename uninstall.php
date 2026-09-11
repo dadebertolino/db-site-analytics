@@ -20,6 +20,8 @@ delete_option('dbsa_salt_date');
 delete_option('dbsa_schema_version');
 delete_option('dbsa_geoip_updated');
 delete_option('dbsa_geoip_last_error');
+delete_option('dbsa_cache_gen');
+delete_option('dbsa_backfill_cursor');
 
 // Rimuovi database GeoIP
 $upload = wp_upload_dir();
@@ -41,3 +43,4 @@ $wpdb->query("DELETE FROM {$wpdb->options} WHERE option_name LIKE '_transient_ti
 
 // Rimuovi cron
 wp_clear_scheduled_hook('dbsa_daily_cron');
+wp_clear_scheduled_hook('dbsa_backfill_referrer_host');

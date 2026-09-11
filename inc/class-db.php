@@ -12,7 +12,16 @@ class DBSA_DB {
     private static $instance = null;
 
     /** Versione schema: incrementare quando cambia la struttura delle tabelle. */
-    const SCHEMA_VERSION = '3';
+    const SCHEMA_VERSION = '4';
+
+    /** Cron one-off: calcola referrer_host sulle righe precedenti allo schema 4. */
+    const BACKFILL_HOOK = 'dbsa_backfill_referrer_host';
+
+    /** is_bot = 1: rumore (404, scanner) marcato dalla bonifica storico. */
+    const FLAG_NOISE = 1;
+
+    /** is_bot = 2: ricerca interna registrata come pageview prima della v3.3.0. */
+    const FLAG_SEARCH = 2;
 
     /** Flag in-memory: tabelle verificate in questa richiesta. */
     private static $tables_verified = false;
@@ -27,6 +36,7 @@ class DBSA_DB {
     private function __construct() {
         // Cron handler
         add_action('dbsa_daily_cron', array($this, 'daily_maintenance'));
+        add_action(self::BACKFILL_HOOK, array($this, 'backfill_referrer_host'));
     }
 
     /**
@@ -51,6 +61,7 @@ class DBSA_DB {
             page_url VARCHAR(2083) NOT NULL DEFAULT '',
             page_title VARCHAR(255) NOT NULL DEFAULT '',
             referrer VARCHAR(2083) NOT NULL DEFAULT '',
+            referrer_host VARCHAR(255) NOT NULL DEFAULT '',
             visitor_hash VARCHAR(64) NOT NULL DEFAULT '',
             device_type VARCHAR(10) NOT NULL DEFAULT 'desktop',
             browser VARCHAR(50) NOT NULL DEFAULT '',
@@ -82,6 +93,7 @@ class DBSA_DB {
                 'page_url'     => substr(sanitize_url($data['page_url'] ?? ''), 0, 2083),
                 'page_title'   => substr(sanitize_text_field($data['page_title'] ?? ''), 0, 255),
                 'referrer'     => substr(sanitize_url($data['referrer'] ?? ''), 0, 2083),
+                'referrer_host' => substr(sanitize_text_field($data['referrer_host'] ?? ''), 0, 255),
                 'visitor_hash' => sanitize_text_field($data['visitor_hash'] ?? ''),
                 'device_type'  => sanitize_key($data['device_type'] ?? 'desktop'),
                 'browser'      => substr(sanitize_text_field($data['browser'] ?? ''), 0, 50),
@@ -90,7 +102,7 @@ class DBSA_DB {
                 'is_bot'       => absint($data['is_bot'] ?? 0),
                 'created_at'   => current_time('mysql', true), // UTC
             ),
-            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s')
+            array('%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%s', '%d', '%s')
         );
 
         return $inserted ? $wpdb->insert_id : false;
@@ -174,13 +186,13 @@ class DBSA_DB {
 
         return $wpdb->get_results($wpdb->prepare(
             "SELECT
-                referrer,
+                referrer_host AS referrer,
                 COUNT(*) AS pageviews
              FROM {$table}
              WHERE is_bot = 0
-               AND referrer != ''
+               AND referrer_host != ''
                AND created_at BETWEEN %s AND %s
-             GROUP BY referrer
+             GROUP BY referrer_host
              ORDER BY pageviews DESC
              LIMIT %d",
             $from . ' 00:00:00',
@@ -224,15 +236,26 @@ class DBSA_DB {
         if (self::$tables_verified) {
             return;
         }
-        if (get_option('dbsa_schema_version') === self::SCHEMA_VERSION) {
-            self::$tables_verified = true;
-            return;
+        if (get_option('dbsa_schema_version') !== self::SCHEMA_VERSION) {
+            $this->upgrade();
         }
+        self::$tables_verified = true;
+    }
+
+    /**
+     * Crea/aggiorna tutte le tabelle e avvia le migrazioni dati.
+     * Usato all'attivazione e a ogni cambio di SCHEMA_VERSION.
+     */
+    public function upgrade(): void {
         $this->create_tables();
         $this->create_downloads_table();
         $this->create_events_table();
         update_option('dbsa_schema_version', self::SCHEMA_VERSION, false);
-        self::$tables_verified = true;
+
+        // v3.3.0 — referrer_host per le righe esistenti, in background a blocchi
+        if (!wp_next_scheduled(self::BACKFILL_HOOK)) {
+            wp_schedule_single_event(time(), self::BACKFILL_HOOK);
+        }
     }
 
     // =========================================================================
@@ -426,7 +449,7 @@ class DBSA_DB {
         return $wpdb->get_results($wpdb->prepare(
             "SELECT
                 created_at, page_url, page_title,
-                referrer, device_type, browser, os
+                referrer, referrer_host, device_type, browser, os
              FROM {$table}
              WHERE is_bot = 0
                AND created_at BETWEEN %s AND %s
@@ -638,10 +661,265 @@ class DBSA_DB {
         ), ARRAY_A);
     }
 
+    /**
+     * Top termini cercati nella ricerca interna (v3.3.0).
+     */
+    public function get_top_searches(string $from, string $to, int $limit = 20): array {
+        global $wpdb;
+        $table = self::table_events();
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT event_data AS term, COUNT(*) AS searches, COUNT(DISTINCT visitor_hash) AS visitors
+             FROM {$table}
+             WHERE event_type = 'search'
+               AND created_at BETWEEN %s AND %s
+             GROUP BY event_data
+             ORDER BY searches DESC
+             LIMIT %d",
+            $from . ' 00:00:00',
+            $to . ' 23:59:59',
+            $limit
+        ), ARRAY_A);
+    }
+
+    /**
+     * Anteprime di condivisione per piattaforma (v3.3.0).
+     */
+    public function get_share_preview_networks(string $from, string $to): array {
+        global $wpdb;
+        $table = self::table_events();
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT event_data AS network, COUNT(*) AS total
+             FROM {$table}
+             WHERE event_type = 'share_preview'
+               AND created_at BETWEEN %s AND %s
+             GROUP BY event_data
+             ORDER BY total DESC",
+            $from . ' 00:00:00',
+            $to . ' 23:59:59'
+        ), ARRAY_A);
+    }
+
+    /**
+     * Pagine più condivise, stimate dalle anteprime generate (v3.3.0).
+     */
+    public function get_top_shared_pages(string $from, string $to, int $limit = 10): array {
+        global $wpdb;
+        $table = self::table_events();
+
+        return $wpdb->get_results($wpdb->prepare(
+            "SELECT page_url, COUNT(*) AS total
+             FROM {$table}
+             WHERE event_type = 'share_preview'
+               AND created_at BETWEEN %s AND %s
+             GROUP BY page_url
+             ORDER BY total DESC
+             LIMIT %d",
+            $from . ' 00:00:00',
+            $to . ' 23:59:59',
+            $limit
+        ), ARRAY_A);
+    }
+
     private function events_table_exists(): bool {
         global $wpdb;
         $table = self::table_events();
         return $wpdb->get_var("SHOW TABLES LIKE '{$table}'") === $table;
+    }
+
+    // =========================================================================
+    // v3.3.0 — Migrazione referrer_host
+    // =========================================================================
+
+    /**
+     * Calcola referrer_host sulle righe registrate prima dello schema 4.
+     * Cron one-off a blocchi con cursore su id: si riprogramma finché serve.
+     */
+    public function backfill_referrer_host(): void {
+        global $wpdb;
+        $table  = self::table_pageviews();
+        $cursor = (int) get_option('dbsa_backfill_cursor', 0);
+
+        for ($batch = 0; $batch < 20; $batch++) {
+            $rows = $wpdb->get_results($wpdb->prepare(
+                "SELECT id, referrer FROM {$table}
+                 WHERE id > %d AND referrer != '' AND referrer_host = ''
+                 ORDER BY id ASC
+                 LIMIT 1000",
+                $cursor
+            ), ARRAY_A);
+
+            if (empty($rows)) {
+                delete_option('dbsa_backfill_cursor');
+                self::flush_cache();
+                return;
+            }
+
+            // Un UPDATE per host invece che per riga
+            $ids_by_host = array();
+            foreach ($rows as $row) {
+                $host = DBSA_Tracker::normalize_referrer_host($row['referrer']);
+                if ($host !== '') {
+                    $ids_by_host[$host][] = (int) $row['id'];
+                }
+                $cursor = (int) $row['id'];
+            }
+            foreach ($ids_by_host as $host => $ids) {
+                $wpdb->query($wpdb->prepare(
+                    "UPDATE {$table} SET referrer_host = %s WHERE id IN (" . implode(',', $ids) . ')',
+                    $host
+                ));
+            }
+
+            update_option('dbsa_backfill_cursor', $cursor, false);
+        }
+
+        // Tabella grande: continua al prossimo giro
+        wp_schedule_single_event(time() + MINUTE_IN_SECONDS, self::BACKFILL_HOOK);
+    }
+
+    // =========================================================================
+    // v3.3.0 — Bonifica storico
+    // Le righe registrate prima dei filtri (404, scanner, ricerche) vengono
+    // marcate in is_bot, non cancellate: le query di lettura filtrano già
+    // is_bot = 0, quindi l'operazione è reversibile e il rumore resta misurabile.
+    // =========================================================================
+
+    /**
+     * Regole di bonifica: etichetta, condizione SQL già preparata, colonna
+     * per gli esempi, flag da assegnare.
+     */
+    private function noise_rules(): array {
+        global $wpdb;
+
+        $scanner = array();
+        foreach (array('/.env', '/.git', '/wp-admin', '/wp-includes', '/wp-content/', '/cgi-bin', '/phpmyadmin', '/vendor/', '.sql', '.bak', '.asp', '.jsp') as $needle) {
+            $scanner[] = $wpdb->prepare('page_url LIKE %s', '%' . $wpdb->esc_like($needle) . '%');
+        }
+        // .php: nessuna pagina WordPress lo contiene, salvo i permalink PATHINFO (/index.php/...)
+        $scanner[] = $wpdb->prepare('(page_url LIKE %s AND page_url NOT LIKE %s)', '%.php%', '%/index.php/%');
+
+        $search = array();
+        foreach (array_unique(array('Ricerca: ', __('Ricerca', 'db-site-analytics') . ': ')) as $prefix) {
+            $search[] = $wpdb->prepare('page_title LIKE %s', $wpdb->esc_like($prefix) . '%');
+        }
+
+        return array(
+            'search'   => array(
+                'label' => __('Ricerche interne registrate come pagine', 'db-site-analytics'),
+                'where' => '(' . implode(' OR ', $search) . ')',
+                'group' => 'page_title',
+                'flag'  => self::FLAG_SEARCH,
+            ),
+            'scanner'  => array(
+                'label' => __('Percorsi da scanner (.env, .php, wp-admin, .git…)', 'db-site-analytics'),
+                'where' => '(' . implode(' OR ', $scanner) . ')',
+                'group' => 'page_url',
+                'flag'  => self::FLAG_NOISE,
+            ),
+            'untitled' => array(
+                'label' => __('Pagine senza titolo (404, favicon, URL inesistenti)', 'db-site-analytics'),
+                'where' => "page_title = ''",
+                'group' => 'page_url',
+                'flag'  => self::FLAG_NOISE,
+            ),
+        );
+    }
+
+    /**
+     * Anteprima bonifica: righe interessate e valori più frequenti per regola.
+     */
+    public function get_noise_report(): array {
+        global $wpdb;
+        $table  = self::table_pageviews();
+        $report = array();
+
+        foreach ($this->noise_rules() as $key => $rule) {
+            $report[$key] = array(
+                'label'   => $rule['label'],
+                'count'   => (int) $wpdb->get_var("SELECT COUNT(*) FROM {$table} WHERE is_bot = 0 AND {$rule['where']}"),
+                'samples' => $wpdb->get_results(
+                    "SELECT {$rule['group']} AS label, COUNT(*) AS total
+                     FROM {$table}
+                     WHERE is_bot = 0 AND {$rule['where']}
+                     GROUP BY {$rule['group']}
+                     ORDER BY total DESC
+                     LIMIT 5",
+                    ARRAY_A
+                ),
+            );
+        }
+
+        return $report;
+    }
+
+    /**
+     * Righe già marcate dalla bonifica.
+     */
+    public function get_marked_count(): int {
+        global $wpdb;
+        $table = self::table_pageviews();
+
+        return (int) $wpdb->get_var(
+            "SELECT COUNT(*) FROM {$table} WHERE is_bot IN (" . self::FLAG_NOISE . ', ' . self::FLAG_SEARCH . ')'
+        );
+    }
+
+    /**
+     * Marca le righe delle regole scelte. Ritorna il numero di righe marcate.
+     */
+    public function apply_noise_rules(array $keys): int {
+        global $wpdb;
+        $table  = self::table_pageviews();
+        $marked = 0;
+
+        foreach ($this->noise_rules() as $key => $rule) {
+            if (!in_array($key, $keys, true)) {
+                continue;
+            }
+            $flag = (int) $rule['flag'];
+            do {
+                $updated = (int) $wpdb->query(
+                    "UPDATE {$table} SET is_bot = {$flag} WHERE is_bot = 0 AND {$rule['where']} LIMIT 5000"
+                );
+                $marked += $updated;
+            } while ($updated === 5000);
+        }
+
+        self::flush_cache();
+        return $marked;
+    }
+
+    /**
+     * Annulla la bonifica: tutte le righe marcate tornano nelle statistiche.
+     */
+    public function restore_noise(): int {
+        global $wpdb;
+        $table = self::table_pageviews();
+
+        $restored = (int) $wpdb->query(
+            "UPDATE {$table} SET is_bot = 0 WHERE is_bot IN (" . self::FLAG_NOISE . ', ' . self::FLAG_SEARCH . ')'
+        );
+
+        self::flush_cache();
+        return $restored;
+    }
+
+    // =========================================================================
+    // Cache statistiche
+    // =========================================================================
+
+    /**
+     * Chiave transient versionata: flush_cache() invalida tutte le cache
+     * statistiche (funziona anche con object cache persistente).
+     */
+    public static function cache_key(string $prefix, string $key): string {
+        return $prefix . md5(get_option('dbsa_cache_gen', '0') . '|' . $key);
+    }
+
+    public static function flush_cache(): void {
+        update_option('dbsa_cache_gen', (string) microtime(true), false);
     }
 
     /**

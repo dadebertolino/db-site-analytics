@@ -82,11 +82,7 @@ final class DB_Site_Analytics {
     }
 
     public function activate(): void {
-        $db = DBSA_DB::instance();
-        $db->create_tables();
-        $db->create_downloads_table();
-        $db->create_events_table();
-        update_option('dbsa_schema_version', DBSA_DB::SCHEMA_VERSION, false);
+        DBSA_DB::instance()->upgrade();
         $this->schedule_cron();
 
         // Genera salt giornaliero iniziale
@@ -109,12 +105,15 @@ final class DB_Site_Analytics {
                 'track_scroll'        => 0,
                 'trust_proxy'         => 0,
                 'enable_geoip'        => 0,
+                'track_searches'      => 1,
+                'track_share_previews' => 1,
             ));
         }
     }
 
     public function deactivate(): void {
         wp_clear_scheduled_hook('dbsa_daily_cron');
+        wp_clear_scheduled_hook(DBSA_DB::BACKFILL_HOOK);
     }
 
     private function schedule_cron(): void {

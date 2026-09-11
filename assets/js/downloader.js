@@ -48,8 +48,13 @@
         if (!el) return;
 
         var href = el.getAttribute('href');
-        if (isDownloadLink(href)) {
-            trackDownload(href, window.location.href);
+        if (!isDownloadLink(href)) return;
+
+        try {
+            // URL assoluto: i link relativi (/wp-content/...) verrebbero rifiutati dal server
+            trackDownload(new URL(href, window.location.href).href, window.location.href);
+        } catch (err) {
+            // URL non parsabile, ignora
         }
     }, true);
 

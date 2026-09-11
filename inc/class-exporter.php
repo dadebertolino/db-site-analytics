@@ -67,7 +67,7 @@ class DBSA_Exporter {
         fwrite($out, "\xEF\xBB\xBF");
 
         fputcsv($out, array(
-            'Data/Ora (UTC)', 'URL Pagina', 'Titolo Pagina', 'Referrer', 'Dispositivo', 'Browser', 'OS'
+            'Data/Ora (UTC)', 'URL Pagina', 'Titolo Pagina', 'Referrer', 'Host Referrer', 'Dispositivo', 'Browser', 'OS'
         ), ';');
 
         foreach ($rows as $row) {
@@ -76,6 +76,7 @@ class DBSA_Exporter {
                 $row['page_url'],
                 $row['page_title'],
                 $row['referrer'],
+                $row['referrer_host'],
                 $row['device_type'],
                 $row['browser'],
                 $row['os'],
