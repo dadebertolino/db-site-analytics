@@ -41,6 +41,11 @@ class DBSA_Events {
             return;
         }
 
+        // Staff e percorsi esclusi: niente script (v3.3.1)
+        if (DBSA_Tracker::instance()->is_excluded_visitor($settings)) {
+            return;
+        }
+
         wp_enqueue_script(
             'dbsa-events',
             DBSA_PLUGIN_URL . 'assets/js/events.js',
@@ -63,6 +68,14 @@ class DBSA_Events {
     // -------------------------------------------------------------------------
 
     public function ajax_track_event(): void {
+        $page_url = DBSA_Tracker::clean_page_url(esc_url_raw(wp_unslash($_POST['page_url'] ?? '')));
+
+        // v3.3.1 — Stesse esclusioni del tracker (con la cache di pagina lo
+        // script può arrivare anche a chi è escluso): ignora in silenzio.
+        if (DBSA_Tracker::instance()->is_excluded_visitor(get_option('dbsa_settings', array()), $page_url)) {
+            wp_send_json_success();
+        }
+
         // v3.1.0 — Niente nonce (vedi DBSA_Downloader): rate limit + validazione stretta.
         if (!DBSA_Visitor::check_rate_limit('event', 30, 60)) {
             wp_send_json_error('Rate limit exceeded', 429);
@@ -70,7 +83,6 @@ class DBSA_Events {
 
         $event_type = sanitize_key($_POST['event_type'] ?? '');
         $event_data = sanitize_text_field(wp_unslash($_POST['event_data'] ?? ''));
-        $page_url   = esc_url_raw(wp_unslash($_POST['page_url'] ?? ''));
 
         // Validazione per tipo evento
         if ($event_type === 'scroll_depth') {
@@ -79,10 +91,10 @@ class DBSA_Events {
             }
         } elseif ($event_type === 'outbound_click') {
             $event_data = esc_url_raw($event_data);
-            $host       = (string) wp_parse_url($event_data, PHP_URL_HOST);
-            $home_host  = (string) wp_parse_url(home_url(), PHP_URL_HOST);
-            if (!filter_var($event_data, FILTER_VALIDATE_URL) || $host === '' ||
-                $host === $home_host || $host === 'www.' . $home_host) {
+            // Host normalizzato come i referrer (minuscolo, senza www su entrambi i lati):
+            // '' = nessun host o dominio del sito (v3.3.1)
+            if (!filter_var($event_data, FILTER_VALIDATE_URL) ||
+                '' === DBSA_Tracker::normalize_referrer_host($event_data)) {
                 wp_send_json_error('Invalid outbound URL', 400);
             }
         } else {

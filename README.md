@@ -144,6 +144,12 @@ db-site-analytics/
 
 ## Changelog
 
+### 3.3.1
+- Security: CSV export hardened against formula injection (search terms, titles or URLs starting with `= + - @` are exported as text)
+- Accuracy: downloads, outbound clicks and scroll depth no longer count staff actions or excluded paths (previously applied to page views only)
+- Accuracy: with a `www.` home URL, links to the bare domain are no longer counted as outbound
+- Privacy: the source page of events and downloads is stored without query string and fragment (UTM, tokens, emails), as page views already were
+
 ### 3.3.0
 - Accuracy: 404s (scanners probing `.env`, `up.php`, `wp-login`…), HEAD requests, browser prefetch/prerender, favicon, previews and embeds are no longer counted
 - Accuracy: revised bot filter (requests without User-Agent, HeadlessChrome, okhttp, Bytespider, PetalBot…), extensible via the `dbsa_bot_patterns` filter

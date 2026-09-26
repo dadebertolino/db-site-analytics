@@ -4,7 +4,7 @@ Tags: analytics, statistics, gdpr, privacy, tracking
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.3.0
+Stable tag: 3.3.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -91,6 +91,12 @@ Il file `uninstall.php` rimuove tutte le tabelle del database e tutte le opzioni
 5. Impostazioni
 
 == Changelog ==
+
+= 3.3.1 =
+* Sicurezza: export CSV protetto dall'iniezione di formule (termini di ricerca, titoli o URL che iniziano con = + - @ vengono esportati come testo)
+* Accuratezza: download, link esterni e scroll non contano più le azioni dello staff e dei percorsi esclusi (prima si applicava solo alle visite)
+* Accuratezza: con home su www.dominio, i link a dominio senza www non risultano più come link esterni
+* Privacy: la pagina di provenienza di eventi e download viene salvata senza query string e frammento (UTM, token, email), come già avveniva per le visite
 
 = 3.3.0 =
 * Accuratezza: esclusi dal conteggio i 404 (scanner che cercano .env, up.php, wp-login…), le richieste HEAD, il prefetch/prerender del browser, favicon, anteprime ed embed
