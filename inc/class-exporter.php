@@ -70,12 +70,12 @@ class DBSA_Exporter {
         // BOM UTF-8 per compatibilità Excel
         fwrite($out, "\xEF\xBB\xBF");
 
-        fputcsv($out, array(
+        $this->write_row($out, array(
             'Data/Ora (fuso del sito)', 'URL Pagina', 'Titolo Pagina', 'Referrer', 'Host Referrer', 'Dispositivo', 'Browser', 'OS'
-        ), ';', '"', '');
+        ));
 
         foreach ($rows as $row) {
-            fputcsv($out, array(
+            $this->write_row($out, array(
                 get_date_from_gmt($row['created_at']),
                 $row['page_url'],
                 $row['page_title'],
@@ -84,7 +84,7 @@ class DBSA_Exporter {
                 $row['device_type'],
                 $row['browser'],
                 $row['os'],
-            ), ';', '"', '');
+            ));
         }
 
         fclose($out);
@@ -104,17 +104,17 @@ class DBSA_Exporter {
         $out = fopen('php://output', 'w');
         fwrite($out, "\xEF\xBB\xBF");
 
-        fputcsv($out, array(
+        $this->write_row($out, array(
             'Data/Ora (fuso del sito)', 'Nome File', 'URL File', 'Pagina di Provenienza'
-        ), ';', '"', '');
+        ));
 
         foreach ($rows as $row) {
-            fputcsv($out, array(
+            $this->write_row($out, array(
                 get_date_from_gmt($row['created_at']),
                 $row['file_name'],
                 $row['file_url'],
                 $row['page_url'],
-            ), ';', '"', '');
+            ));
         }
 
         fclose($out);
@@ -134,21 +134,36 @@ class DBSA_Exporter {
         $out = fopen('php://output', 'w');
         fwrite($out, "\xEF\xBB\xBF");
 
-        fputcsv($out, array(
+        $this->write_row($out, array(
             'Data/Ora (fuso del sito)', 'Tipo Evento', 'Dato Evento', 'Pagina'
-        ), ';', '"', '');
+        ));
 
         foreach ($rows as $row) {
-            fputcsv($out, array(
+            $this->write_row($out, array(
                 get_date_from_gmt($row['created_at']),
                 $row['event_type'],
                 $row['event_data'],
                 $row['page_url'],
-            ), ';', '"', '');
+            ));
         }
 
         fclose($out);
         exit;
+    }
+
+    /**
+     * Scrive una riga CSV neutralizzando le formule (v3.3.1).
+     * Termini di ricerca, titoli, referrer e URL degli eventi arrivano dai
+     * visitatori: una cella che inizia con = + - @ verrebbe eseguita da
+     * Excel/LibreOffice all'apertura del file. L'apostrofo la forza a testo.
+     */
+    private function write_row($out, array $fields): void {
+        $fields = array_map(function ($value) {
+            $value = (string) $value;
+            return ('' !== $value && strpos("=+-@\t\r", $value[0]) !== false) ? "'" . $value : $value;
+        }, $fields);
+
+        fputcsv($out, $fields, ';', '"', '');
     }
 
     private function send_csv_headers(string $filename): void {

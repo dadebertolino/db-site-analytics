@@ -43,6 +43,11 @@ class DBSA_Downloader {
             return;
         }
 
+        // Staff e percorsi esclusi: niente script (v3.3.1)
+        if (DBSA_Tracker::instance()->is_excluded_visitor($settings)) {
+            return;
+        }
+
         $extensions = sanitize_text_field($settings['download_extensions'] ?? self::DEFAULT_EXTENSIONS);
         $ext_array  = array_filter(array_map('trim', explode(',', strtolower($extensions))));
 
@@ -68,19 +73,26 @@ class DBSA_Downloader {
         // v3.1.0 — Niente nonce: con il page caching il nonce cachato scade
         // e il tracking fallisce silenziosamente. L'endpoint e' anonimo e
         // write-only: protezione via rate limiting per IP + validazione.
+        $settings = get_option('dbsa_settings', array());
+        $page_url = DBSA_Tracker::clean_page_url(esc_url_raw(wp_unslash($_POST['page_url'] ?? '')));
+
+        // v3.3.1 — Stesse esclusioni del tracker (con la cache di pagina lo
+        // script può arrivare anche a chi è escluso): ignora in silenzio.
+        if (DBSA_Tracker::instance()->is_excluded_visitor($settings, $page_url)) {
+            wp_send_json_success();
+        }
+
         if (!DBSA_Visitor::check_rate_limit('download', 20, 60)) {
             wp_send_json_error('Rate limit exceeded', 429);
         }
 
         $file_url = esc_url_raw(wp_unslash($_POST['file_url'] ?? ''));
-        $page_url = esc_url_raw(wp_unslash($_POST['page_url'] ?? ''));
 
         if (empty($file_url) || !filter_var($file_url, FILTER_VALIDATE_URL)) {
             wp_send_json_error('Invalid file_url', 400);
         }
 
         // L'estensione deve essere tra quelle configurate
-        $settings   = get_option('dbsa_settings', array());
         $extensions = strtolower(sanitize_text_field($settings['download_extensions'] ?? self::DEFAULT_EXTENSIONS));
         $allowed    = array_filter(array_map('trim', explode(',', $extensions)));
         $path       = (string) wp_parse_url($file_url, PHP_URL_PATH);

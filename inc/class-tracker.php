@@ -118,6 +118,39 @@ class DBSA_Tracker {
         return esc_url_raw(home_url(add_query_arg(array(), $wp->request)));
     }
 
+    /**
+     * URL di pagina inviato dal browser (eventi, download), ripulito come
+     * quelli del tracker (v3.3.1): senza query string e frammento, che
+     * possono contenere UTM, token o email. Con i permalink semplici
+     * mantiene solo le query var pubbliche che identificano la pagina.
+     */
+    public static function clean_page_url(string $url): string {
+        global $wp;
+
+        $base = preg_replace('/[?#].*$/', '', $url);
+        if ('' !== (string) get_option('permalink_structure') || !($wp instanceof WP)) {
+            return $base;
+        }
+
+        parse_str((string) wp_parse_url($url, PHP_URL_QUERY), $args);
+        $public = apply_filters('query_vars', $wp->public_query_vars);
+        $args   = array_filter(array_intersect_key($args, array_flip($public)), 'is_scalar');
+
+        return $args ? add_query_arg(rawurlencode_deep($args), $base) : $base;
+    }
+
+    /**
+     * Visitatore escluso dalle statistiche: utente escluso (staff, ruoli,
+     * loggati) o percorso escluso. Usato anche da eventi e download (v3.3.1),
+     * che prima contavano i clic dello staff.
+     *
+     * @param string $page_url Pagina da verificare; vuoto = richiesta corrente.
+     */
+    public function is_excluded_visitor(array $settings, string $page_url = ''): bool {
+        $path = '' !== $page_url ? (string) wp_parse_url($page_url, PHP_URL_PATH) : null;
+        return $this->is_excluded_user($settings) || $this->is_excluded_path($settings, $path);
+    }
+
     // -------------------------------------------------------------------------
     // Metodi privati
     // -------------------------------------------------------------------------
@@ -146,8 +179,7 @@ class DBSA_Tracker {
         // Prefetch/prerender del browser (speculation rules WP 6.8+): non è una visita
         if ($this->is_prefetch())                        return false;
 
-        if ($this->is_excluded_user($settings))          return false;
-        if ($this->is_excluded_path($settings))          return false;
+        if ($this->is_excluded_visitor($settings))       return false;
 
         return true;
     }
@@ -180,13 +212,15 @@ class DBSA_Tracker {
     /**
      * Esclusione percorsi personalizzati (pattern con wildcard).
      */
-    private function is_excluded_path(array $settings): bool {
+    private function is_excluded_path(array $settings, ?string $current_path = null): bool {
         $exclude_paths = sanitize_textarea_field($settings['exclude_paths'] ?? '');
         if (empty($exclude_paths)) {
             return false;
         }
 
-        $current_path = (string) wp_parse_url(sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'] ?? '')), PHP_URL_PATH);
+        if (null === $current_path) {
+            $current_path = (string) wp_parse_url(sanitize_text_field(wp_unslash($_SERVER['REQUEST_URI'] ?? '')), PHP_URL_PATH);
+        }
         foreach (array_filter(array_map('trim', explode("\n", $exclude_paths))) as $pattern) {
             if (fnmatch($pattern, $current_path)) {
                 return true;

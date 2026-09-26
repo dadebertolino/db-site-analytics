@@ -9,7 +9,9 @@
     if (!window.dbsaEv) return;
 
     var cfg      = window.dbsaEv;
-    var homeHost = (new URL(cfg.home_url)).hostname;
+    // Host senza www, come lato server: www.sito.it e sito.it sono lo stesso sito
+    function bareHost(h) { return h.toLowerCase().replace(/^www\./, ''); }
+    var homeHost = bareHost((new URL(cfg.home_url)).hostname);
 
     // -------------------------------------------------------------------------
     // Utility: invia evento via sendBeacon o XHR
@@ -46,9 +48,9 @@
 
             try {
                 var url  = new URL(href, window.location.href);
-                var host = url.hostname;
+                var host = bareHost(url.hostname);
                 // È un link esterno se il dominio è diverso dall'home
-                if (host && host !== homeHost && host !== 'www.' + homeHost) {
+                if (host && host !== homeHost) {
                     // URL assoluto: i link protocol-relative (//dominio) verrebbero rifiutati dal server
                     sendEvent('outbound_click', url.href, window.location.href);
                 }
