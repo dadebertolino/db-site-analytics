@@ -146,6 +146,10 @@ db-site-analytics/
 
 ## Changelog
 
+### 3.4.1
+- Privacy: the per-IP rate-limit transient key uses a salted HMAC of the IP (`hash_hmac('sha256', $ip, wp_salt())`) instead of an unsalted `md5($ip)`, which could be reversed by brute force over the IPv4 space
+- Code: added the "Privacy capabilities" block to the plugin header (no cookies, no third-party scripts, no DSAR — daily rotating hash)
+
 ### 3.4.0
 - Privacy: processing declared to DB Privacy Hub (`dbph_processing_register`) and suggested text in Settings → Privacy → Policy Guide, based on the enabled options
 - Privacy: search terms that look like emails, phone numbers (9+ digits) or Italian tax codes are not stored (`dbsa_search_is_personal` filter)

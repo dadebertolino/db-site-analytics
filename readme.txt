@@ -4,7 +4,7 @@ Tags: analytics, statistics, gdpr, privacy, tracking
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.4.0
+Stable tag: 3.4.1
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -93,6 +93,10 @@ Il file `uninstall.php` rimuove tutte le tabelle del database e tutte le opzioni
 5. Impostazioni
 
 == Changelog ==
+
+= 3.4.1 =
+* Privacy: la chiave del rate limit per IP usa un HMAC salato dell'IP (hash_hmac sha256 con wp_salt) invece di un md5 non salato, invertibile per forza bruta sullo spazio IPv4
+* Codice: aggiunto nell'intestazione del plugin il blocco "Privacy capabilities" (niente cookie, niente script di terze parti, niente DSAR — hash giornaliero a rotazione)
 
 = 3.4.0 =
 * Privacy: trattamenti dichiarati nel registro di DB Privacy Hub (filtro dbph_processing_register) e testo suggerito in Impostazioni → Privacy → Guida, in base alle opzioni attive

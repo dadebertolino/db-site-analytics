@@ -128,7 +128,9 @@ class DBSA_Visitor {
      * @param int    $window  Durata finestra in secondi.
      */
     public static function check_rate_limit(string $context, int $max = 30, int $window = 60): bool {
-        $key   = 'dbsa_rl_' . $context . '_' . md5(self::get_client_ip());
+        // IP mai in chiaro né con hash non salato (md5 di un IPv4 è invertibile
+        // per forza bruta): HMAC con il salt del sito, troncato.
+        $key   = 'dbsa_rl_' . $context . '_' . substr(hash_hmac('sha256', self::get_client_ip(), wp_salt('nonce')), 0, 32);
         $count = (int) get_transient($key);
 
         if ($count >= $max) {

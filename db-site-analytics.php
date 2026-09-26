@@ -3,7 +3,7 @@
  * Plugin Name:       DB Site Analytics
  * Plugin URI:        https://www.davidebertolino.it/progetti/db-site-analytics/
  * Description:       Tracciamento visite server-side senza cookie e senza servizi esterni. Privacy by design.
- * Version:           3.4.0
+ * Version:           3.4.1
  * Author:            Davide Bertolino
  * Author URI:        https://www.davidebertolino.it
  * License:           GPL v2 or later
@@ -16,8 +16,21 @@
 
 if (!defined('ABSPATH')) exit;
 
+/**
+ * Privacy capabilities (per references/PRIVACY-INTEGRATION.md):
+ *  - Personal data:        NO  — nessun IP/UA salvato: solo hash giornaliero
+ *                          SHA-256(IP + UA + salt ruotato ogni giorno), non
+ *                          ricollegabile a una persona dopo la rotazione
+ *  - Cookies:              NO
+ *  - Third-party scripts:  NO  — script frontend self-hosted; il database GeoIP
+ *                          (opzionale) è scaricato lato server, nessun dato inviato
+ *  - User consent:         NO  — non richiesto (nessun cookie, nessun identificatore persistente)
+ *  - DSAR-aware:           NO  — nulla da esportare/cancellare per email (hash giornaliero)
+ *  - Hub-aware:            YES — dbph_processing_register (+ legacy dbseo_processing_register)
+ */
+
 // Costanti
-define('DBSA_VERSION',    '3.4.0');
+define('DBSA_VERSION',    '3.4.1');
 define('DBSA_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DBSA_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DBSA_PLUGIN_FILE', __FILE__);
