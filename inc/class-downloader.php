@@ -82,7 +82,7 @@ class DBSA_Downloader {
             wp_send_json_success();
         }
 
-        if (!DBSA_Visitor::check_rate_limit('download', 20, 60)) {
+        if (!DBSA_Visitor::check_rate_limit('download', DBSA_Visitor::rate_limit('download'), 60)) {
             wp_send_json_error('Rate limit exceeded', 429);
         }
 

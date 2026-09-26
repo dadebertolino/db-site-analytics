@@ -76,7 +76,8 @@
                 document.documentElement.offsetHeight
             ) - window.innerHeight;
 
-            if (docHeight <= 0) return 100;
+            // v3.4.0 — Pagina che non scorre: nessuna profondità da misurare
+            if (docHeight <= 0) return -1;
             return Math.min(100, Math.round((scrollTop / docHeight) * 100));
         }
 
@@ -97,9 +98,9 @@
             });
         }
 
+        // v3.4.0 — Solo scroll reali: prima le pagine corte inviavano subito
+        // 25-50-75-100% al caricamento, gonfiando la statistica
         window.addEventListener('scroll', onScroll, { passive: true });
-        // Controlla subito (pagine corte già al 100%)
-        onScroll();
     }
 
 })();

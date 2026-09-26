@@ -378,7 +378,9 @@ class DBSA_Admin {
 
         $settings     = get_option('dbsa_settings', array());
         $saved        = !empty($_GET['saved']);
-        $noise_report = DBSA_DB::instance()->get_noise_report();
+        // v3.4.0 — Anteprima bonifica solo su richiesta: sono scansioni complete
+        // della tabella, troppo pesanti per ogni apertura delle impostazioni
+        $noise_report = !empty($_GET['dbsa_noise']) ? DBSA_DB::instance()->get_noise_report() : null;
         $noise_marked = DBSA_DB::instance()->get_marked_count();
 
         include DBSA_PLUGIN_DIR . 'templates/admin/settings.php';

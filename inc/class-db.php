@@ -983,14 +983,4 @@ class DBSA_DB {
     public static function flush_cache(): void {
         update_option('dbsa_cache_gen', (string) microtime(true), false);
     }
-
-    /**
-     * Rimuove tutte le tabelle (usato da uninstall.php).
-     */
-    public static function drop_tables(): void {
-        global $wpdb;
-        $wpdb->query("DROP TABLE IF EXISTS " . $wpdb->prefix . "dbsa_pageviews");
-        $wpdb->query("DROP TABLE IF EXISTS " . $wpdb->prefix . "dbsa_downloads");
-        $wpdb->query("DROP TABLE IF EXISTS " . $wpdb->prefix . "dbsa_events");
-    }
 }

@@ -136,7 +136,15 @@ foreach ($devices as $d) {
             <h3><?php esc_html_e('Andamento visite', 'db-site-analytics'); ?></h3>
         </div>
         <div class="db-ui-card-body">
-            <canvas id="dbsa-chart-views" height="80"></canvas>
+            <canvas id="dbsa-chart-views" height="80" role="img"
+                    aria-label="<?php echo esc_attr(sprintf(
+                        /* translators: 1: pageview, 2: visitatori unici, 3: data inizio, 4: data fine */
+                        __('Grafico visite giornaliere: %1$s pageview e %2$s visitatori unici dal %3$s al %4$s', 'db-site-analytics'),
+                        number_format_i18n(array_sum($chart_pv)),
+                        number_format_i18n((int) ($stats_30d['visitors'] ?? 0)),
+                        date_i18n(get_option('date_format'), strtotime($from)),
+                        date_i18n(get_option('date_format'), strtotime($to))
+                    )); ?>"></canvas>
         </div>
     </div>
 
@@ -234,7 +242,10 @@ foreach ($devices as $d) {
                             <span class="db-ui-empty-text"><?php esc_html_e('Nessun dato.', 'db-site-analytics'); ?></span>
                         </div>
                     <?php else : ?>
-                        <canvas id="dbsa-chart-devices" height="120"></canvas>
+                        <canvas id="dbsa-chart-devices" height="120" role="img"
+                            aria-label="<?php echo esc_attr(__('Ripartizione per dispositivo', 'db-site-analytics') . ': ' . implode(', ', array_map(function ($label, $value) {
+                                return $label . ' ' . number_format_i18n($value);
+                            }, $device_labels, $device_data))); ?>"></canvas>
                     <?php endif; ?>
                 </div>
             </div>

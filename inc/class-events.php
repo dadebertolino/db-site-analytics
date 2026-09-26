@@ -77,7 +77,7 @@ class DBSA_Events {
         }
 
         // v3.1.0 — Niente nonce (vedi DBSA_Downloader): rate limit + validazione stretta.
-        if (!DBSA_Visitor::check_rate_limit('event', 30, 60)) {
+        if (!DBSA_Visitor::check_rate_limit('event', DBSA_Visitor::rate_limit('event'), 60)) {
             wp_send_json_error('Rate limit exceeded', 429);
         }
 
