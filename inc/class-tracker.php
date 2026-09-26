@@ -296,7 +296,7 @@ class DBSA_Tracker {
             if (strpos($ua_lower, $pattern) === false) {
                 continue;
             }
-            if (!DBSA_Visitor::check_rate_limit('share', 30, 60)) {
+            if (!DBSA_Visitor::check_rate_limit('share', DBSA_Visitor::rate_limit('share'), 60)) {
                 return;
             }
             DBSA_DB::instance()->insert_event(array(
@@ -324,8 +324,13 @@ class DBSA_Tracker {
             return;
         }
 
-        // Un utente vero non fa più di dieci ricerche al minuto
-        if (!DBSA_Visitor::check_rate_limit('search', 10, 60)) {
+        // Dati personali (email, telefoni, codici fiscali): non salvare (v3.4.0)
+        if (self::looks_personal($query)) {
+            return;
+        }
+
+        // Soglia per IP larga abbastanza per reti condivise (scuole, uffici, CGNAT)
+        if (!DBSA_Visitor::check_rate_limit('search', DBSA_Visitor::rate_limit('search'), 60)) {
             return;
         }
 
@@ -335,6 +340,22 @@ class DBSA_Tracker {
             'page_url'     => '',
             'visitor_hash' => DBSA_Visitor::generate_hash(),
         ));
+    }
+
+    /**
+     * Il termine cercato sembra un dato personale? (v3.4.0)
+     * Email, sequenze di 9+ cifre (telefoni, IBAN, documenti; "2024/2025"
+     * resta valido) e codici fiscali italiani. Estendibile con il filtro
+     * 'dbsa_search_is_personal'.
+     */
+    public static function looks_personal(string $term): bool {
+        $digits_only = preg_replace('/(?<=\d)[\s.\-\/]+(?=\d)/', '', $term);
+
+        $personal = (bool) preg_match('/[^\s@]+@[^\s@]+\.[a-z]{2,}/i', $term)
+            || (bool) preg_match('/\d{9,}/', $digits_only)
+            || (bool) preg_match('/\b[a-z]{6}\d{2}[a-z]\d{2}[a-z]\d{3}[a-z]\b/i', $term);
+
+        return (bool) apply_filters('dbsa_search_is_personal', $personal, $term);
     }
 
     /**
@@ -364,22 +385,24 @@ class DBSA_Tracker {
     private function parse_user_agent(string $ua): array {
         $ua_lower = strtolower($ua);
 
-        // Device
+        // Device — Android senza "Mobile" è un tablet (convenzione Google)
         $device = 'desktop';
-        if (preg_match('/tablet|ipad|playbook|silk/i', $ua)) {
+        if (preg_match('/tablet|ipad|playbook|silk/i', $ua) || (stripos($ua, 'android') !== false && stripos($ua, 'mobile') === false)) {
             $device = 'tablet';
         } elseif (preg_match('/mobile|android|iphone|ipod|blackberry|opera mini|iemobile|wpdesktop/i', $ua)) {
             $device = 'mobile';
         }
 
-        // Browser
+        // Browser — su iOS Chrome, Firefox ed Edge si dichiarano CriOS, FxiOS, EdgiOS
         $browser = 'Other';
-        if (strpos($ua_lower, 'edg/') !== false || strpos($ua_lower, 'edge/') !== false) {
+        if (preg_match('/edg(e|a|ios)?\//', $ua_lower)) {
             $browser = 'Edge';
         } elseif (strpos($ua_lower, 'opr/') !== false || strpos($ua_lower, 'opera') !== false) {
             $browser = 'Opera';
-        } elseif (strpos($ua_lower, 'chrome') !== false && strpos($ua_lower, 'chromium') === false) {
+        } elseif (strpos($ua_lower, 'crios/') !== false || (strpos($ua_lower, 'chrome') !== false && strpos($ua_lower, 'chromium') === false)) {
             $browser = 'Chrome';
+        } elseif (strpos($ua_lower, 'fxios/') !== false) {
+            $browser = 'Firefox';
         } elseif (strpos($ua_lower, 'safari') !== false && strpos($ua_lower, 'chrome') === false) {
             $browser = 'Safari';
         } elseif (strpos($ua_lower, 'firefox') !== false) {

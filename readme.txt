@@ -4,7 +4,7 @@ Tags: analytics, statistics, gdpr, privacy, tracking
 Requires at least: 5.8
 Tested up to: 6.7
 Requires PHP: 7.4
-Stable tag: 3.3.1
+Stable tag: 3.4.0
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
 
@@ -43,7 +43,9 @@ Per contare i visitatori unici senza identificarli, viene generato un hash giorn
 
 Il plugin è progettato per ridurre al minimo i dati personali: non salva indirizzi IP, non installa cookie, non memorizza nulla sul dispositivo del visitatore e non comunica con servizi di terze parti (a parte il download mensile del database GeoIP, se attivato). I referrer esterni vengono salvati senza query string.
 
-Il visitor_hash è un dato pseudonimo durante la giornata e diventa non ricollegabile dopo la rotazione del salt. In genere non serve un banner di consenso, ma il trattamento va descritto nell'informativa privacy. Se attivi il tracciamento delle ricerche interne, i termini cercati possono contenere dati personali.
+Il visitor_hash è un dato pseudonimo durante la giornata e diventa non ricollegabile dopo la rotazione del salt. In genere non serve un banner di consenso, ma il trattamento va descritto nell'informativa privacy. Se attivi il tracciamento delle ricerche interne, i termini che sembrano email, numeri di telefono o codici fiscali vengono scartati senza essere salvati; gli altri termini possono comunque contenere dati personali.
+
+Il plugin propone un testo per l'informativa in Impostazioni → Privacy → Guida e, se è installato DB Privacy Hub, dichiara i propri trattamenti nel registro.
 
 == Installation ==
 
@@ -91,6 +93,18 @@ Il file `uninstall.php` rimuove tutte le tabelle del database e tutte le opzioni
 5. Impostazioni
 
 == Changelog ==
+
+= 3.4.0 =
+* Privacy: trattamenti dichiarati nel registro di DB Privacy Hub (filtro dbph_processing_register) e testo suggerito in Impostazioni → Privacy → Guida, in base alle opzioni attive
+* Privacy: le ricerche che sembrano email, numeri di telefono (9+ cifre) o codici fiscali non vengono salvate (filtro dbsa_search_is_personal)
+* Accuratezza: soglie per IP più larghe per le reti condivise di scuole, uffici e reti mobili (eventi 120/min, download 60/min, ricerche 30/min), regolabili con il filtro dbsa_rate_limit
+* Accuratezza: la profondità di scroll viene registrata solo su scroll reali; le pagine corte non inviano più 25-50-75-100% al caricamento
+* Accuratezza: tablet Android riconosciuti come tablet; Chrome, Firefox ed Edge su iOS e Android riconosciuti correttamente
+* Performance: l'anteprima della "Bonifica storico" viene calcolata solo su richiesta, non a ogni apertura delle impostazioni
+* Accessibilità: grafici della dashboard con descrizione testuale per gli screen reader
+* Disinstallazione: su multisito vengono ripuliti tutti i siti
+* Traduzioni: aggiunto il template languages/db-site-analytics.pot
+* Codice: rimosso il metodo inutilizzato DBSA_DB::drop_tables()
 
 = 3.3.1 =
 * Sicurezza: export CSV protetto dall'iniezione di formule (termini di ricerca, titoli o URL che iniziano con = + - @ vengono esportati come testo)

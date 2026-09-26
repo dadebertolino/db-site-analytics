@@ -3,12 +3,13 @@
  * Plugin Name:       DB Site Analytics
  * Plugin URI:        https://www.davidebertolino.it/progetti/db-site-analytics/
  * Description:       Tracciamento visite server-side senza cookie e senza servizi esterni. Privacy by design.
- * Version:           3.3.1
+ * Version:           3.4.0
  * Author:            Davide Bertolino
  * Author URI:        https://www.davidebertolino.it
  * License:           GPL v2 or later
  * License URI:       https://www.gnu.org/licenses/gpl-2.0.html
  * Text Domain:       db-site-analytics
+ * Domain Path:       /languages
  * Requires at least: 5.8
  * Requires PHP:      7.4
  */
@@ -16,7 +17,7 @@
 if (!defined('ABSPATH')) exit;
 
 // Costanti
-define('DBSA_VERSION',    '3.3.1');
+define('DBSA_VERSION',    '3.4.0');
 define('DBSA_PLUGIN_DIR', plugin_dir_path(__FILE__));
 define('DBSA_PLUGIN_URL', plugin_dir_url(__FILE__));
 define('DBSA_PLUGIN_FILE', __FILE__);
@@ -32,6 +33,7 @@ require_once DBSA_PLUGIN_DIR . 'inc/class-events.php';
 require_once DBSA_PLUGIN_DIR . 'inc/class-shortcodes.php';
 require_once DBSA_PLUGIN_DIR . 'inc/class-rest-api.php';
 require_once DBSA_PLUGIN_DIR . 'inc/class-exporter.php';
+require_once DBSA_PLUGIN_DIR . 'inc/class-privacy.php';
 require_once DBSA_PLUGIN_DIR . 'inc/class-admin.php';
 require_once DBSA_PLUGIN_DIR . 'inc/class-updater.php';
 
@@ -74,6 +76,7 @@ final class DB_Site_Analytics {
         DBSA_Events::instance();
         DBSA_Shortcodes::instance();
         DBSA_REST_API::instance();
+        DBSA_Privacy::instance();
 
         if (is_admin()) {
             DBSA_Admin::instance();

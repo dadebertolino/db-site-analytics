@@ -42,7 +42,7 @@ All data stays in your WordPress database. Privacy by design.
 - CSV export for events
 
 ### Internal search & share previews *(server-side, no JS)*
-- **Internal searches** recorded as a separate report, not as pages — empty or >100-character queries discarded, max 10 searches/min per IP
+- **Internal searches** recorded as a separate report, not as pages — empty or >100-character queries discarded, terms that look like emails, phone numbers or Italian tax codes are discarded, max 30 searches/min per IP
 - **Share previews** — requests from Facebook, WhatsApp, Telegram, X, LinkedIn, Slack, Discord… generating a link preview are excluded from visits and counted separately, to estimate how often a page is shared
 
 ### History cleanup
@@ -89,7 +89,9 @@ The plugin is designed to minimise personal data:
 - No cross-day profiling: the salt rotates at local midnight and the previous one is deleted
 - External referrers stored without query string
 
-The `visitor_hash` is `SHA256(IP + UA + daily_salt)`. While the day's salt exists the hash is **pseudonymous**, not anonymous; once the salt rotates it can no longer be linked to a visitor. A consent banner is generally not required because no cookies or device storage are used, but the processing should still be described in your privacy policy. If internal search tracking is enabled, search terms may contain personal data.
+The `visitor_hash` is `SHA256(IP + UA + daily_salt)`. While the day's salt exists the hash is **pseudonymous**, not anonymous; once the salt rotates it can no longer be linked to a visitor. A consent banner is generally not required because no cookies or device storage are used, but the processing should still be described in your privacy policy. If internal search tracking is enabled, terms that look like emails, phone numbers (9+ digits) or Italian tax codes are discarded; other terms may still contain personal data.
+
+The plugin suggests privacy-policy text under Settings → Privacy → Policy Guide and, when DB Privacy Hub is installed, declares its processing activities via `dbph_processing_register`.
 
 ---
 
@@ -143,6 +145,18 @@ db-site-analytics/
 ---
 
 ## Changelog
+
+### 3.4.0
+- Privacy: processing declared to DB Privacy Hub (`dbph_processing_register`) and suggested text in Settings → Privacy → Policy Guide, based on the enabled options
+- Privacy: search terms that look like emails, phone numbers (9+ digits) or Italian tax codes are not stored (`dbsa_search_is_personal` filter)
+- Accuracy: wider per-IP limits for shared school, office and mobile networks (events 120/min, downloads 60/min, searches 30/min), adjustable via the `dbsa_rate_limit` filter
+- Accuracy: scroll depth recorded on real scrolls only; short pages no longer send 25-50-75-100% on load
+- Accuracy: Android tablets detected as tablets; Chrome, Firefox and Edge on iOS/Android detected correctly
+- Performance: the history-cleanup preview is computed on demand, not on every settings page load
+- Accessibility: dashboard charts have a text description for screen readers
+- Uninstall: every site is cleaned up on multisite
+- Translations: added `languages/db-site-analytics.pot`
+- Code: removed unused `DBSA_DB::drop_tables()`
 
 ### 3.3.1
 - Security: CSV export hardened against formula injection (search terms, titles or URLs starting with `= + - @` are exported as text)

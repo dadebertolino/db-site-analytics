@@ -1,0 +1,841 @@
+# Copyright (C) 2026 Davide Bertolino
+# This file is distributed under the GPL v2 or later.
+#
+#, fuzzy
+msgid ""
+msgstr ""
+"Project-Id-Version: DB Site Analytics 3.4.0\n"
+"Report-Msgid-Bugs-To: info@davidebertolino.it\n"
+"POT-Creation-Date: 2026-09-26 15:29+0200\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"Language: \n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=INTEGER; plural=EXPRESSION;\n"
+
+#: inc/class-admin.php:38 inc/class-admin.php:399 inc/class-privacy.php:90
+#: templates/admin/dashboard.php:65
+msgid "DB Site Analytics"
+msgstr ""
+
+#: inc/class-admin.php:39
+msgid "Analytics"
+msgstr ""
+
+#: inc/class-admin.php:49 inc/class-admin.php:50
+msgid "Dashboard"
+msgstr ""
+
+#: inc/class-admin.php:58 inc/class-admin.php:59
+#: templates/admin/dashboard.php:400 templates/admin/downloads.php:81
+msgid "Download"
+msgstr ""
+
+#: inc/class-admin.php:67 inc/class-admin.php:68
+msgid "Eventi"
+msgstr ""
+
+#: inc/class-admin.php:76 inc/class-admin.php:77
+msgid "Impostazioni"
+msgstr ""
+
+#: inc/class-admin.php:142 inc/class-admin.php:182 inc/class-admin.php:208
+#: inc/class-admin.php:376 inc/class-exporter.php:35
+msgid "Permesso negato."
+msgstr ""
+
+#: inc/class-db.php:866
+msgid "Ricerca"
+msgstr ""
+
+#: inc/class-db.php:872
+msgid "Ricerche interne registrate come pagine"
+msgstr ""
+
+#: inc/class-db.php:878
+msgid "Percorsi da scanner (.env, .php, wp-admin, .git…)"
+msgstr ""
+
+#: inc/class-db.php:884
+msgid "Pagine senza titolo (404, favicon, URL inesistenti)"
+msgstr ""
+
+#: inc/class-exporter.php:38
+msgid "Nonce non valido."
+msgstr ""
+
+#: inc/class-geoip.php:87
+msgid "Sconosciuto"
+msgstr ""
+
+#: inc/class-geoip.php:174
+msgid "Download non riuscito."
+msgstr ""
+
+#. translators: 1: mese richiesto (YYYY-MM), 2: codice HTTP
+#: inc/class-geoip.php:215
+#, php-format
+msgid "Download %1$s fallito (HTTP %2$d)."
+msgstr ""
+
+#: inc/class-geoip.php:223
+msgid "Impossibile creare la cartella dbsa-geoip."
+msgstr ""
+
+#: inc/class-geoip.php:235
+msgid "Errore di decompressione."
+msgstr ""
+
+#. translators: %s: messaggio di errore
+#: inc/class-geoip.php:259
+#, php-format
+msgid "File scaricato non valido: %s"
+msgstr ""
+
+#: inc/class-geoip.php:266
+msgid "Impossibile sostituire il database."
+msgstr ""
+
+#: inc/class-privacy.php:48
+msgid "Statistiche di visita (DB Site Analytics)"
+msgstr ""
+
+#: inc/class-privacy.php:50
+msgid ""
+"Misurare in forma aggregata le visite al sito: pagine più viste, "
+"provenienza, tipo di dispositivo, andamento nel tempo."
+msgstr ""
+
+#: inc/class-privacy.php:51
+msgid ""
+"Legittimo interesse del titolare (art. 6.1.f GDPR) a conoscere l'uso del "
+"proprio sito. Nessun cookie né memorizzazione sul dispositivo (art. 122 "
+"Codice Privacy non applicabile)."
+msgstr ""
+
+#: inc/class-privacy.php:54
+msgid ""
+"Nessuno. I dati restano nel database WordPress del sito; nessun servizio "
+"esterno riceve dati dei visitatori."
+msgstr ""
+
+#: inc/class-privacy.php:60
+msgid "Ricerche interne (DB Site Analytics)"
+msgstr ""
+
+#: inc/class-privacy.php:62
+msgid ""
+"Conoscere cosa cercano i visitatori per migliorare i contenuti del sito."
+msgstr ""
+
+#: inc/class-privacy.php:63
+msgid "Legittimo interesse del titolare (art. 6.1.f GDPR)."
+msgstr ""
+
+#: inc/class-privacy.php:64
+msgid ""
+"Termine cercato e hash giornaliero del visitatore. I termini che sembrano "
+"email, numeri di telefono o codici fiscali vengono scartati senza essere "
+"salvati."
+msgstr ""
+
+#: inc/class-privacy.php:66
+msgid "Nessuno."
+msgstr ""
+
+#: inc/class-privacy.php:83
+msgid ""
+"Questo sito raccoglie statistiche di visita con DB Site Analytics, "
+"direttamente sul proprio server. Non vengono usati cookie né altri strumenti "
+"che memorizzano informazioni sul tuo dispositivo, e nessun dato viene "
+"inviato a terzi."
+msgstr ""
+
+#: inc/class-privacy.php:87
+msgid ""
+"Vengono registrati anche i termini cercati nel sito, per migliorarne i "
+"contenuti; i termini che sembrano email, numeri di telefono o codici fiscali "
+"vengono scartati."
+msgstr ""
+
+#: inc/class-privacy.php:95
+msgid "pagina visitata"
+msgstr ""
+
+#: inc/class-privacy.php:96
+msgid "sito di provenienza (senza parametri)"
+msgstr ""
+
+#: inc/class-privacy.php:97
+msgid "tipo di dispositivo, browser e sistema operativo"
+msgstr ""
+
+#: inc/class-privacy.php:100
+msgid "paese, ricavato dall'indirizzo IP con un database locale"
+msgstr ""
+
+#: inc/class-privacy.php:103
+msgid "file scaricati"
+msgstr ""
+
+#: inc/class-privacy.php:106
+msgid "link esterni cliccati"
+msgstr ""
+
+#: inc/class-privacy.php:109
+msgid "profondità di lettura della pagina"
+msgstr ""
+
+#. translators: %s: elenco dei dati raccolti
+#: inc/class-privacy.php:114
+#, php-format
+msgid ""
+"Per ogni visita vengono registrati: %s. L'indirizzo IP non viene salvato: "
+"viene combinato con lo user agent e con un valore casuale che cambia ogni "
+"giorno per calcolare un codice (hash) che permette di contare i visitatori "
+"unici della giornata. Durante la giornata il codice è un dato pseudonimo; "
+"dal giorno dopo il valore casuale viene eliminato e il codice non è più "
+"ricollegabile al visitatore."
+msgstr ""
+
+#. translators: %d: giorni di conservazione
+#: inc/class-privacy.php:125
+#, php-format
+msgid "I dati vengono cancellati automaticamente dopo %d giorni."
+msgstr ""
+
+#: inc/class-privacy.php:128
+msgid ""
+"I dati vengono conservati fino alla cancellazione manuale da parte del "
+"titolare."
+msgstr ""
+
+#: inc/class-shortcodes.php:146
+msgid "visitatore"
+msgid_plural "visitatori"
+msgstr[0] ""
+msgstr[1] ""
+
+#: inc/class-shortcodes.php:147
+msgid "visita"
+msgid_plural "visite"
+msgstr[0] ""
+msgstr[1] ""
+
+#: inc/class-shortcodes.php:161
+#, php-format
+msgid "<strong>%1$s</strong> visitatore unico negli ultimi %2$d giorni"
+msgid_plural "<strong>%1$s</strong> visitatori unici negli ultimi %2$d giorni"
+msgstr[0] ""
+msgstr[1] ""
+
+#: inc/class-shortcodes.php:173
+#, php-format
+msgid "<strong>%1$s</strong> visita negli ultimi %2$d giorni"
+msgid_plural "<strong>%1$s</strong> visite negli ultimi %2$d giorni"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/dashboard.php:67 templates/admin/downloads.php:23
+#: templates/admin/events.php:31
+msgid "Esporta CSV"
+msgstr ""
+
+#: templates/admin/dashboard.php:77 templates/admin/downloads.php:32
+#: templates/admin/events.php:40
+msgid "Dal"
+msgstr ""
+
+#: templates/admin/dashboard.php:79 templates/admin/downloads.php:34
+#: templates/admin/events.php:42
+msgid "al"
+msgstr ""
+
+#: templates/admin/dashboard.php:81 templates/admin/downloads.php:36
+#: templates/admin/events.php:44
+msgid "Filtra"
+msgstr ""
+
+#: templates/admin/dashboard.php:82 templates/admin/downloads.php:37
+#: templates/admin/events.php:45
+msgid "Reset"
+msgstr ""
+
+#: templates/admin/dashboard.php:94
+msgid "Pageview oggi"
+msgstr ""
+
+#: templates/admin/dashboard.php:102
+msgid "Visitatori oggi"
+msgstr ""
+
+#: templates/admin/dashboard.php:110
+msgid "Pageview 7 giorni"
+msgstr ""
+
+#. translators: %d: numero di giorni del periodo selezionato
+#: templates/admin/dashboard.php:123
+#, php-format
+msgid "Pageview %d giorno"
+msgid_plural "Pageview %d giorni"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/dashboard.php:136
+msgid "Andamento visite"
+msgstr ""
+
+#. translators: 1: pageview, 2: visitatori unici, 3: data inizio, 4: data fine
+#: templates/admin/dashboard.php:142
+#, php-format
+msgid ""
+"Grafico visite giornaliere: %1$s pageview e %2$s visitatori unici dal %3$s "
+"al %4$s"
+msgstr ""
+
+#: templates/admin/dashboard.php:157
+msgid "Top 10 pagine"
+msgstr ""
+
+#: templates/admin/dashboard.php:163
+msgid "Nessun dato nel periodo selezionato."
+msgstr ""
+
+#: templates/admin/dashboard.php:169 templates/admin/events.php:227
+msgid "Pagina"
+msgstr ""
+
+#: templates/admin/dashboard.php:170
+msgid "PV"
+msgstr ""
+
+#: templates/admin/dashboard.php:171
+msgid "UV"
+msgstr ""
+
+#: templates/admin/dashboard.php:180 templates/admin/dashboard.php:221
+#: templates/admin/downloads.php:93 templates/admin/downloads.php:103
+#: templates/admin/events.php:99 templates/admin/events.php:237
+msgid "(si apre in una nuova finestra)"
+msgstr ""
+
+#: templates/admin/dashboard.php:199
+msgid "Top 10 referrer"
+msgstr ""
+
+#: templates/admin/dashboard.php:205
+msgid "Nessun referrer nel periodo."
+msgstr ""
+
+#: templates/admin/dashboard.php:211
+msgid "Referrer"
+msgstr ""
+
+#: templates/admin/dashboard.php:212
+msgid "Visite"
+msgstr ""
+
+#: templates/admin/dashboard.php:236
+msgid "Dispositivi"
+msgstr ""
+
+#: templates/admin/dashboard.php:242 templates/admin/dashboard.php:330
+#: templates/admin/dashboard.php:353
+msgid "Nessun dato."
+msgstr ""
+
+#: templates/admin/dashboard.php:246
+msgid "Ripartizione per dispositivo"
+msgstr ""
+
+#: templates/admin/dashboard.php:260
+msgid "Confronto periodi"
+msgstr ""
+
+#. translators: 1: data inizio periodo precedente, 2: data fine periodo precedente
+#: templates/admin/dashboard.php:265
+#, php-format
+msgid "Periodo precedente: %1$s → %2$s"
+msgstr ""
+
+#: templates/admin/dashboard.php:278 templates/admin/dashboard.php:427
+msgid "Pageview"
+msgstr ""
+
+#: templates/admin/dashboard.php:284 templates/admin/dashboard.php:428
+#: templates/admin/downloads.php:82
+msgid "Visitatori unici"
+msgstr ""
+
+#: templates/admin/dashboard.php:310
+msgid "Periodo corrente"
+msgstr ""
+
+#: templates/admin/dashboard.php:312
+msgid "Periodo precedente"
+msgstr ""
+
+#: templates/admin/dashboard.php:327
+msgid "Browser"
+msgstr ""
+
+#: templates/admin/dashboard.php:350
+msgid "Sistemi operativi"
+msgstr ""
+
+#: templates/admin/dashboard.php:373
+msgid "Paesi"
+msgstr ""
+
+#: templates/admin/dashboard.php:376
+msgid "Nessun dato. Abilita il GeoIP nelle impostazioni."
+msgstr ""
+
+#: templates/admin/dashboard.php:404
+msgid "file scaricati nel periodo"
+msgstr ""
+
+#: templates/admin/dashboard.php:407
+msgid "Dettaglio →"
+msgstr ""
+
+#: templates/admin/downloads.php:21
+msgid "Download Tracking"
+msgstr ""
+
+#: templates/admin/downloads.php:47
+msgid "Download totali nel periodo"
+msgstr ""
+
+#: templates/admin/downloads.php:58
+msgid "Il tracking dei download è disabilitato."
+msgstr ""
+
+#: templates/admin/downloads.php:59
+msgid "Abilitalo nelle impostazioni →"
+msgstr ""
+
+#: templates/admin/downloads.php:67
+msgid "File più scaricati"
+msgstr ""
+
+#: templates/admin/downloads.php:73
+msgid "Nessun download registrato nel periodo selezionato."
+msgstr ""
+
+#: templates/admin/downloads.php:80
+msgid "File"
+msgstr ""
+
+#: templates/admin/downloads.php:83
+msgid "Pagina principale"
+msgstr ""
+
+#: templates/admin/events.php:29 templates/admin/settings.php:168
+msgid "Tracking Eventi"
+msgstr ""
+
+#: templates/admin/events.php:54
+msgid "Nessun tipo di evento è abilitato."
+msgstr ""
+
+#: templates/admin/events.php:55
+msgid "Configura nelle impostazioni →"
+msgstr ""
+
+#: templates/admin/events.php:65
+msgid "eventi nel periodo"
+msgstr ""
+
+#: templates/admin/events.php:74
+msgid "Link esterni cliccati"
+msgstr ""
+
+#: templates/admin/events.php:76 templates/admin/events.php:116
+#: templates/admin/events.php:163 templates/admin/events.php:200
+msgid "Disabilitato"
+msgstr ""
+
+#: templates/admin/events.php:83
+msgid "Nessun click su link esterno nel periodo."
+msgstr ""
+
+#: templates/admin/events.php:89
+msgid "URL"
+msgstr ""
+
+#: templates/admin/events.php:90
+msgid "Click"
+msgstr ""
+
+#: templates/admin/events.php:114
+msgid "Profondità di scroll"
+msgstr ""
+
+#: templates/admin/events.php:123
+msgid "Nessun dato di scroll nel periodo."
+msgstr ""
+
+#. translators: %s: numero di utenti
+#: templates/admin/events.php:144
+#, php-format
+msgid "%s utente"
+msgid_plural "%s utenti"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/events.php:161
+msgid "Ricerche interne"
+msgstr ""
+
+#: templates/admin/events.php:170
+msgid "Nessuna ricerca nel periodo."
+msgstr ""
+
+#: templates/admin/events.php:176
+msgid "Termine"
+msgstr ""
+
+#: templates/admin/events.php:177
+msgid "Ricerche"
+msgstr ""
+
+#: templates/admin/events.php:178
+msgid "Visitatori"
+msgstr ""
+
+#: templates/admin/events.php:198
+msgid "Condivisioni (anteprime link)"
+msgstr ""
+
+#: templates/admin/events.php:207
+msgid "Nessuna anteprima generata nel periodo."
+msgstr ""
+
+#: templates/admin/events.php:228
+msgid "Anteprime"
+msgstr ""
+
+#: templates/admin/events.php:248
+msgid ""
+"Conteggio approssimato: alcune piattaforme rigenerano l'anteprima più volte "
+"per lo stesso link."
+msgstr ""
+
+#: templates/admin/settings.php:29
+msgid "Impostazioni — DB Site Analytics"
+msgstr ""
+
+#: templates/admin/settings.php:35
+msgid "Impostazioni salvate."
+msgstr ""
+
+#. translators: %s: numero di righe
+#: templates/admin/settings.php:47
+#, php-format
+msgid "%s riga esclusa dalle statistiche."
+msgid_plural "%s righe escluse dalle statistiche."
+msgstr[0] ""
+msgstr[1] ""
+
+#. translators: %s: numero di righe
+#: templates/admin/settings.php:61
+#, php-format
+msgid "%s riga ripristinata nelle statistiche."
+msgid_plural "%s righe ripristinate nelle statistiche."
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/settings.php:72
+msgid "Database GeoIP aggiornato."
+msgstr ""
+
+#: templates/admin/settings.php:77
+msgid "Aggiornamento GeoIP fallito."
+msgstr ""
+
+#: templates/admin/settings.php:86
+msgid "Tracciamento"
+msgstr ""
+
+#: templates/admin/settings.php:92
+msgid "Escludi lo staff del sito"
+msgstr ""
+
+#: templates/admin/settings.php:94
+msgid ""
+"Le visite di chi può modificare contenuti (amministratori, editor, autori, "
+"collaboratori) non vengono mai registrate, anche se il tracciamento degli "
+"utenti loggati è attivo. Evita di contare le proprie visite mentre si lavora "
+"al sito."
+msgstr ""
+
+#: templates/admin/settings.php:100
+msgid "Traccia anche gli utenti loggati"
+msgstr ""
+
+#: templates/admin/settings.php:102
+msgid ""
+"Se disabilitato, nessun utente loggato viene tracciato (indipendentemente "
+"dal ruolo)."
+msgstr ""
+
+#: templates/admin/settings.php:108
+msgid "Escludi ruoli specifici"
+msgstr ""
+
+#: templates/admin/settings.php:109
+msgid "Seleziona i ruoli le cui visite non devono essere registrate."
+msgstr ""
+
+#: templates/admin/settings.php:126
+msgid "Il sito è dietro proxy/CDN (Cloudflare, reverse proxy)"
+msgstr ""
+
+#: templates/admin/settings.php:128
+msgid ""
+"Attiva SOLO se il sito passa da Cloudflare o un reverse proxy: usa gli "
+"header X-Forwarded-For / CF-Connecting-IP per identificare i visitatori. Se "
+"disattivato viene usato solo REMOTE_ADDR (non falsificabile)."
+msgstr ""
+
+#: templates/admin/settings.php:134
+msgid "Percorsi esclusi"
+msgstr ""
+
+#: templates/admin/settings.php:135
+msgid ""
+"Un pattern per riga. Supporta wildcard (*). Esempio: /wp-login.php  oppure  /"
+"area-riservata/*"
+msgstr ""
+
+#: templates/admin/settings.php:144
+msgid "Tracking Download"
+msgstr ""
+
+#: templates/admin/settings.php:150
+msgid "Abilita tracking download"
+msgstr ""
+
+#: templates/admin/settings.php:152
+msgid ""
+"Traccia i click su link a file scaricabili. Richiede un piccolo JS (~1KB) "
+"nel frontend."
+msgstr ""
+
+#: templates/admin/settings.php:156
+msgid "Estensioni tracciate"
+msgstr ""
+
+#: templates/admin/settings.php:157
+msgid "Lista separata da virgole. Esempio: pdf,zip,docx,xlsx"
+msgstr ""
+
+#: templates/admin/settings.php:174
+msgid "Traccia click su link esterni (outbound)"
+msgstr ""
+
+#: templates/admin/settings.php:176
+msgid ""
+"Registra i click su link che portano fuori dal sito. Richiede un piccolo JS "
+"nel frontend."
+msgstr ""
+
+#: templates/admin/settings.php:182
+msgid "Traccia profondità di scroll (25%, 50%, 75%, 100%)"
+msgstr ""
+
+#: templates/admin/settings.php:184
+msgid ""
+"Misura fino a che punto i visitatori leggono le pagine. Richiede un piccolo "
+"JS nel frontend."
+msgstr ""
+
+#: templates/admin/settings.php:192
+msgid "Traccia le ricerche interne"
+msgstr ""
+
+#: templates/admin/settings.php:194
+msgid ""
+"Le ricerche vengono registrate come evento separato, non come pagine "
+"visitate. Scartate le ricerche vuote o più lunghe di 100 caratteri; massimo "
+"10 ricerche al minuto per IP. Lato server, nessun JS."
+msgstr ""
+
+#: templates/admin/settings.php:200
+msgid "Conta le anteprime di condivisione (Facebook, WhatsApp, Telegram…)"
+msgstr ""
+
+#: templates/admin/settings.php:202
+msgid ""
+"Quando un link viene condiviso, la piattaforma scarica la pagina per "
+"generare l'anteprima. Queste richieste sono escluse dalle visite ma contate "
+"a parte: indicano, in modo approssimato, quante volte una pagina è stata "
+"condivisa. Lato server, nessun JS."
+msgstr ""
+
+#: templates/admin/settings.php:210
+msgid "Geolocalizzazione (GeoIP)"
+msgstr ""
+
+#: templates/admin/settings.php:216
+msgid "Abilita rilevamento del paese"
+msgstr ""
+
+#: templates/admin/settings.php:218
+msgid ""
+"Usa il database gratuito DB-IP Country Lite (~10 MB), scaricato localmente "
+"in wp-content/uploads e aggiornato automaticamente ogni mese. Il lookup "
+"avviene interamente sul tuo server: nessun IP viene salvato né inviato a "
+"servizi esterni. All'attivazione il database viene scaricato subito."
+msgstr ""
+
+#: templates/admin/settings.php:227
+msgid "Database presente."
+msgstr ""
+
+#. translators: 1: dimensione, 2: data build
+#: templates/admin/settings.php:231
+#, php-format
+msgid "Dimensione: %1$s — Build: %2$s"
+msgstr ""
+
+#: templates/admin/settings.php:242
+msgid "Database non ancora scaricato."
+msgstr ""
+
+#: templates/admin/settings.php:248
+msgid "(licenza CC BY 4.0)"
+msgstr ""
+
+#: templates/admin/settings.php:256
+msgid "Conservazione dati"
+msgstr ""
+
+#: templates/admin/settings.php:259
+msgid "Mantieni i dati per"
+msgstr ""
+
+#: templates/admin/settings.php:260
+msgid "I dati più vecchi vengono eliminati automaticamente ogni notte."
+msgstr ""
+
+#. translators: %d: numero di giorni di conservazione
+#: templates/admin/settings.php:266
+#, php-format
+msgid "%d giorno"
+msgid_plural "%d giorni"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/settings.php:277
+msgid "Privacy & GDPR"
+msgstr ""
+
+#: templates/admin/settings.php:282
+msgid "Il plugin è progettato per ridurre al minimo i dati personali."
+msgstr ""
+
+#: templates/admin/settings.php:283
+msgid ""
+"Non salva indirizzi IP, non usa cookie, non memorizza nulla sul dispositivo "
+"del visitatore e non invia dati a terze parti. Il visitor_hash deriva da IP "
+"e User-Agent con un salt che cambia ogni giorno e poi viene eliminato: dopo "
+"la rotazione l'hash non è più ricollegabile a un visitatore, ma durante la "
+"giornata è un dato pseudonimo, non anonimo."
+msgstr ""
+
+#: templates/admin/settings.php:284
+msgid ""
+"In genere non serve un banner di consenso, ma il trattamento va descritto "
+"nell'informativa privacy. Se tracci le ricerche interne, ricorda che i "
+"termini cercati possono contenere dati personali."
+msgstr ""
+
+#: templates/admin/settings.php:292
+msgid "Salva impostazioni"
+msgstr ""
+
+#: templates/admin/settings.php:302
+msgid "Aggiorna ora il database GeoIP"
+msgstr ""
+
+#: templates/admin/settings.php:310
+msgid "Bonifica storico"
+msgstr ""
+
+#. translators: %s: numero di righe
+#: templates/admin/settings.php:316
+#, php-format
+msgid "%s riga già esclusa"
+msgid_plural "%s righe già escluse"
+msgstr[0] ""
+msgstr[1] ""
+
+#: templates/admin/settings.php:326
+msgid ""
+"I filtri su 404, bot e ricerche valgono da ora in avanti. Qui puoi escludere "
+"dalle statistiche il rumore registrato in precedenza. Le righe non vengono "
+"cancellate: sono marcate e nascoste, e puoi ripristinarle in qualsiasi "
+"momento. Fai comunque un backup del database prima di procedere."
+msgstr ""
+
+#: templates/admin/settings.php:332
+msgid "Analizza lo storico"
+msgstr ""
+
+#: templates/admin/settings.php:335
+msgid ""
+"L'analisi scorre tutta la tabella delle visite: sui siti molto visitati può "
+"richiedere qualche secondo."
+msgstr ""
+
+#: templates/admin/settings.php:342 templates/admin/settings.php:390
+msgid "Ripristina tutte le righe escluse"
+msgstr ""
+
+#: templates/admin/settings.php:355
+msgid "Categoria"
+msgstr ""
+
+#: templates/admin/settings.php:356
+msgid "Righe"
+msgstr ""
+
+#: templates/admin/settings.php:357
+msgid "Valori più frequenti"
+msgstr ""
+
+#: templates/admin/settings.php:382
+msgid ""
+"Verifica che i numeri corrispondano a quanto vedi in dashboard prima di "
+"procedere. Le categorie possono sovrapporsi: ogni riga viene esclusa una "
+"sola volta."
+msgstr ""
+
+#: templates/admin/settings.php:386
+msgid "Escludi le categorie selezionate"
+msgstr ""
+
+#: templates/admin/widget.php:14
+msgid "Oggi"
+msgstr ""
+
+#: templates/admin/widget.php:18
+msgid "Ieri"
+msgstr ""
+
+#: templates/admin/widget.php:22
+msgid "7 giorni"
+msgstr ""
+
+#: templates/admin/widget.php:28
+msgid "Più vista oggi:"
+msgstr ""
+
+#: templates/admin/widget.php:36
+msgid "Vedi dashboard →"
+msgstr ""

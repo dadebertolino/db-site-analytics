@@ -304,8 +304,8 @@ $retention_opts = array(30, 60, 90, 180, 365);
     </form>
     <?php endif; ?>
 
-    <!-- Bonifica storico (v3.3.0) -->
-    <div class="db-ui-card" style="margin-top:24px;">
+    <!-- Bonifica storico (v3.3.0; anteprima su richiesta dalla v3.4.0) -->
+    <div class="db-ui-card" id="dbsa-cleanup" style="margin-top:24px;">
         <div class="db-ui-card-header">
             <h3>🧹 <?php esc_html_e('Bonifica storico', 'db-site-analytics'); ?></h3>
             <?php if ($noise_marked > 0) : ?>
@@ -326,6 +326,25 @@ $retention_opts = array(30, 60, 90, 180, 365);
                 <span><?php esc_html_e('I filtri su 404, bot e ricerche valgono da ora in avanti. Qui puoi escludere dalle statistiche il rumore registrato in precedenza. Le righe non vengono cancellate: sono marcate e nascoste, e puoi ripristinarle in qualsiasi momento. Fai comunque un backup del database prima di procedere.', 'db-site-analytics'); ?></span>
             </div>
 
+            <?php if (null === $noise_report) : ?>
+            <p>
+                <a class="db-ui-btn" href="<?php echo esc_url(admin_url('admin.php?page=dbsa-settings&dbsa_noise=1#dbsa-cleanup')); ?>">
+                    <?php esc_html_e('Analizza lo storico', 'db-site-analytics'); ?>
+                </a>
+            </p>
+            <p class="description"><?php esc_html_e('L\'analisi scorre tutta la tabella delle visite: sui siti molto visitati può richiedere qualche secondo.', 'db-site-analytics'); ?></p>
+
+            <?php if ($noise_marked > 0) : ?>
+            <form method="post" action="">
+                <?php wp_nonce_field('dbsa_cleanup_nonce'); ?>
+                <div class="dbsa-submit-row">
+                    <button type="submit" name="dbsa_cleanup_restore" value="1" class="db-ui-btn">
+                        <?php esc_html_e('Ripristina tutte le righe escluse', 'db-site-analytics'); ?>
+                    </button>
+                </div>
+            </form>
+            <?php endif; ?>
+            <?php else : ?>
             <form method="post" action="">
                 <?php wp_nonce_field('dbsa_cleanup_nonce'); ?>
                 <div class="dbsa-table-wrap">
@@ -373,6 +392,7 @@ $retention_opts = array(30, 60, 90, 180, 365);
                     <?php endif; ?>
                 </div>
             </form>
+            <?php endif; ?>
         </div>
     </div>
 </div>

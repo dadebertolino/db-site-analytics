@@ -102,6 +102,24 @@ class DBSA_Visitor {
     }
 
     /**
+     * Soglia al minuto per IP di un endpoint (v3.4.0).
+     * Le soglie sono larghe perché dietro un solo IP possono esserci
+     * un'intera scuola, un ufficio o una rete mobile (CGNAT): servono a
+     * fermare i flood, non a limitare i visitatori veri.
+     * Regolabili con il filtro 'dbsa_rate_limit' ($max, $context).
+     */
+    public static function rate_limit(string $context): int {
+        $defaults = array(
+            'event'    => 120,
+            'download' => 60,
+            'search'   => 30,
+            'share'    => 30,
+        );
+
+        return max(1, (int) apply_filters('dbsa_rate_limit', $defaults[$context] ?? 30, $context));
+    }
+
+    /**
      * Rate limiting per IP su finestra scorrevole (transient).
      * Ritorna true se la richiesta è consentita, false se il limite è superato.
      *
